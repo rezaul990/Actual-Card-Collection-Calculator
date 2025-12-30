@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Account Wise Actual Card Collection Report</title>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #f0f2f5;
+        font-size: 16px;
+    }
+    
+    /* Drop Zone - Full Page */
+    .drop-zone {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+    .drop-zone.hidden {
+        display: none;
+    }
+    .drop-zone.dragover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    .drop-zone-content {
+        text-align: center;
+        color: white;
+    }
+    .drop-zone-content h1 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+    .drop-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+    }
+    .drop-zone-box {
+        border: 3px dashed rgba(255,255,255,0.7);
+        border-radius: 20px;
+        padding: 60px 80px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .drop-zone-box:hover, .drop-zone.dragover .drop-zone-box {
+        border-color: white;
+        background: rgba(255,255,255,0.1);
+    }
+    .drop-zone-content p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+    .drop-zone-content input[type="file"] {
+        display: none;
+    }
+
+    /* Result Container */
+    .container {
+        width: 90%;
+        max-width: 1200px;
+        margin: 30px auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        display: none;
+    }
+    .container.visible {
+        display: block;
+    }
+    
+    /* Report Header */
+    .report-header {
+        text-align: center;
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid #dee2e6;
+    }
+    .report-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 10px;
+    }
+    .report-header .datetime {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333333;
+    }
+    
+    /* Table Styles */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #0056b3;
+    }
+    th {
+        background: #0056b3;
+        color: #ffffff;
+        padding: 16px 20px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid #004494;
+    }
+    th:first-child {
+        text-align: left;
+    }
+    td {
+        padding: 14px 20px;
+        text-align: center;
+        border: 1px solid #cccccc;
+        font-size: 15px;
+        font-weight: 600;
+        color: #000000;
+    }
+    td:first-child {
+        text-align: left;
+        font-weight: 700;
+        color: #000000;
+    }
+    tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+    tbody tr:nth-child(even) {
+        background-color: #f5f5f5;
+    }
+    tbody tr:hover {
+        background-color: #e0e0e0;
+    }
+    tbody tr.total-row {
+        background: #198754;
+        color: #ffffff;
+    }
+    tbody tr.total-row td {
+        padding: 16px 20px;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 16px;
+        border: 1px solid #146c43;
+    }
+    tbody tr.total-row:hover {
+        background: #198754;
+    }
+    
+    /* Percentage styling */
+    .percent-cell {
+        font-weight: 700;
+        color: #0056b3;
+    }
+    
+    /* Buttons */
+    .btn-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 25px;
+    }
+    .btn {
+        padding: 14px 35px;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    .btn-reset {
+        background: #0056b3;
+    }
+    .btn-reset:hover {
+        background: #004494;
+    }
+    .btn-save {
+        background: #198754;
+    }
+    .btn-save:hover {
+        background: #146c43;
+    }
+</style>
+</head>
+<body>
+
+<!-- Full Page Drop Zone -->
+<div class="drop-zone" id="dropZone">
+    <div class="drop-zone-content">
+        <div class="drop-zone-box" id="dropBox">
+            <div class="drop-icon">📁</div>
+            <h1>Account Wise Actual Card Collection Report</h1>
+            <p>Drag & Drop Excel file here</p>
+            <p style="margin-top: 10px; opacity: 0.7;">or click to browse</p>
+            <input type="file" id="excelFile" accept=".xls,.xlsx" />
+        </div>
+    </div>
+</div>
+
+<!-- Result Container -->
+<div class="container" id="resultContainer">
+    <div class="report-header">
+        <h1>Account Wise Actual Card Collection Report</h1>
+        <div class="datetime" id="reportDateTime"></div>
+    </div>
+
+    <table id="resultTable">
+        <thead>
+            <tr>
+                <th>Plaza Name</th>
+                <th>Plaza Qty</th>
+                <th>Collection Achieve Qty (&gt; 0)</th>
+                <th>Coll %</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    
+    <div class="btn-container">
+        <button class="btn btn-save" id="saveBtn">📷 Save as Image</button>
+        <button class="btn btn-reset" id="resetBtn">Upload Another File</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const dropZone = document.getElementById("dropZone");
+const dropBox = document.getElementById("dropBox");
+const fileInput = document.getElementById("excelFile");
+const resultContainer = document.getElementById("resultContainer");
+const resetBtn = document.getElementById("resetBtn");
+const saveBtn = document.getElementById("saveBtn");
+const reportDateTime = document.getElementById("reportDateTime");
+
+// Click to browse
+dropBox.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => processFile(e.target.files[0]));
+
+// Drag and drop events
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+});
+
+dropZone.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+});
+
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+});
+
+// Reset button
+resetBtn.addEventListener("click", () => {
+    dropZone.classList.remove("hidden");
+    resultContainer.classList.remove("visible");
+    fileInput.value = "";
+});
+
+// Save as image button
+saveBtn.addEventListener("click", () => {
+    const btnContainer = document.querySelector(".btn-container");
+    btnContainer.style.display = "none";
+    
+    html2canvas(resultContainer, {
+        backgroundColor: "#ffffff",
+        scale: 3,
+        useCORS: true,
+        logging: false
+    }).then(canvas => {
+        btnContainer.style.display = "flex";
+        const link = document.createElement("a");
+        link.download = "Collection_Report_" + new Date().toISOString().slice(0,10) + ".png";
+        link.href = canvas.toDataURL("image/png", 1.0);
+        link.click();
+    });
+});
+
+function formatDateTime() {
+    const now = new Date();
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    };
+    return now.toLocaleDateString('en-US', options);
+}
+
+function processFile(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        const HEADER_ROW_INDEX = 5;
+
+        if (!rows[HEADER_ROW_INDEX] || rows[HEADER_ROW_INDEX].length === 0) {
+            alert("Header row (row 6) not found.");
+            return;
+        }
+
+        const headerRow = rows[HEADER_ROW_INDEX];
+        const headers = [];
+        for (let i = 0; i < headerRow.length; i++) {
+            const cell = headerRow[i];
+            headers.push(cell != null ? String(cell).toLowerCase().trim() : "");
+        }
+
+        const plazaCol = headers.findIndex(h => h && h.includes("plaza"));
+        const collectionCol = 21;
+
+        if (plazaCol === -1) {
+            alert("Plaza column not found.\n\nDetected headers:\n" + headers.join(" | "));
+            return;
+        }
+
+        const result = {};
+
+        for (let i = HEADER_ROW_INDEX + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row) continue;
+
+            const plaza = row[plazaCol];
+            const rawCollection = row[collectionCol];
+            
+            let collection = 0;
+            if (rawCollection != null && rawCollection !== "") {
+                const cleaned = String(rawCollection).replace(/[,\s]/g, "").trim();
+                collection = parseFloat(cleaned) || 0;
+            }
+
+            if (!plaza || String(plaza).toLowerCase().trim() === "plaza") continue;
+
+            if (!result[plaza]) {
+                result[plaza] = { plazaQty: 0, collectionQty: 0 };
+            }
+
+            result[plaza].plazaQty++;
+
+            if (collection > 0) {
+                result[plaza].collectionQty++;
+            }
+        }
+
+        // Set date and time
+        reportDateTime.textContent = formatDateTime();
+        
+        renderTable(result);
+        
+        dropZone.classList.add("hidden");
+        resultContainer.classList.add("visible");
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function renderTable(data) {
+    const tbody = document.querySelector("#resultTable tbody");
+    tbody.innerHTML = "";
+
+    let totalPlazaQty = 0;
+    let totalCollectionQty = 0;
+
+    Object.entries(data).forEach(([plaza, values]) => {
+        const collPercent = values.plazaQty > 0 
+            ? ((values.collectionQty / values.plazaQty) * 100).toFixed(2) 
+            : "0.00";
+        
+        totalPlazaQty += values.plazaQty;
+        totalCollectionQty += values.collectionQty;
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${plaza}</td>
+                <td>${values.plazaQty}</td>
+                <td>${values.collectionQty}</td>
+                <td class="percent-cell">${collPercent}%</td>
+            </tr>
+        `;
+    });
+
+    const totalPercent = totalPlazaQty > 0 
+        ? ((totalCollectionQty / totalPlazaQty) * 100).toFixed(2) 
+        : "0.00";
+
+    tbody.innerHTML += `
+        <tr class="total-row">
+            <td>Total</td>
+            <td>${totalPlazaQty}</td>
+            <td>${totalCollectionQty}</td>
+            <td>${totalPercent}%</td>
+        </tr>
+    `;
+}
+</script>
+
+</body>
+</html>
