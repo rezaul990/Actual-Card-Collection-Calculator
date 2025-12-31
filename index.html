@@ -197,6 +197,12 @@
     .btn-save:hover {
         background: #146c43;
     }
+    .btn-excel {
+        background: #217346;
+    }
+    .btn-excel:hover {
+        background: #1a5c38;
+    }
 </style>
 </head>
 <body>
@@ -235,6 +241,7 @@
     
     <div class="btn-container">
         <button class="btn btn-save" id="saveBtn">📷 Save as Image</button>
+        <button class="btn btn-excel" id="excelBtn">📊 Download Excel</button>
         <button class="btn btn-reset" id="resetBtn">Upload Another File</button>
     </div>
 </div>
@@ -249,6 +256,7 @@ const fileInput = document.getElementById("excelFile");
 const resultContainer = document.getElementById("resultContainer");
 const resetBtn = document.getElementById("resetBtn");
 const saveBtn = document.getElementById("saveBtn");
+const excelBtn = document.getElementById("excelBtn");
 const reportDateTime = document.getElementById("reportDateTime");
 
 // Click to browse
@@ -297,6 +305,16 @@ saveBtn.addEventListener("click", () => {
         link.href = canvas.toDataURL("image/png", 1.0);
         link.click();
     });
+});
+
+// Download Excel button
+excelBtn.addEventListener("click", () => {
+    const table = document.getElementById("resultTable");
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.table_to_sheet(table);
+    
+    XLSX.utils.book_append_sheet(wb, ws, "Collection Report");
+    XLSX.writeFile(wb, "Collection_Report_" + new Date().toISOString().slice(0,10) + ".xlsx");
 });
 
 function formatDateTime() {
