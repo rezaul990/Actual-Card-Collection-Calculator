@@ -203,6 +203,58 @@
     .btn-excel:hover {
         background: #1a5c38;
     }
+    
+    /* Section divider */
+    .section-divider {
+        margin: 40px 0;
+        border-top: 3px solid #dee2e6;
+        padding-top: 30px;
+    }
+    
+    /* Tabs for reports */
+    .report-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .tab-btn {
+        padding: 12px 25px;
+        background: #f5f5f5;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        color: #333333;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+        background: #ffffff;
+        color: #0056b3;
+        border-bottom-color: #0056b3;
+    }
+    .tab-btn:hover {
+        background: #ffffff;
+    }
+    
+    .report-section {
+        display: none;
+    }
+    .report-section.active {
+        display: block;
+    }
+    
+    /* Month header */
+    .month-header {
+        background: #e3f2fd;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0056b3;
+        font-size: 16px;
+        font-weight: 700;
+        color: #0056b3;
+    }
 </style>
 </head>
 <body>
@@ -227,17 +279,98 @@
         <div class="datetime" id="reportDateTime"></div>
     </div>
 
-    <table id="resultTable">
-        <thead>
-            <tr>
-                <th>Plaza Name</th>
-                <th>AC Qty</th>
-                <th>Collection Achieve Qty (&gt; 0)</th>
-                <th>Coll %</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <!-- Report Tabs -->
+    <div class="report-tabs">
+        <button class="tab-btn active" data-tab="current">Current Report</button>
+        <button class="tab-btn" data-tab="month1">Month 1</button>
+        <button class="tab-btn" data-tab="month2">Month 2</button>
+        <button class="tab-btn" data-tab="month3">Month 3</button>
+        <button class="tab-btn" data-tab="month4">Month 4</button>
+    </div>
+
+    <!-- Current Report Section -->
+    <div class="report-section active" id="current">
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 1 Section -->
+    <div class="report-section" id="month1">
+        <div class="month-header" id="month1Header"></div>
+        <table id="month1Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 2 Section -->
+    <div class="report-section" id="month2">
+        <div class="month-header" id="month2Header"></div>
+        <table id="month2Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 3 Section -->
+    <div class="report-section" id="month3">
+        <div class="month-header" id="month3Header"></div>
+        <table id="month3Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 4 Section -->
+    <div class="report-section" id="month4">
+        <div class="month-header" id="month4Header"></div>
+        <table id="month4Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
     
     <div class="btn-container">
         <button class="btn btn-save" id="saveBtn">📷 Save as Image</button>
@@ -258,10 +391,23 @@ const resetBtn = document.getElementById("resetBtn");
 const saveBtn = document.getElementById("saveBtn");
 const excelBtn = document.getElementById("excelBtn");
 const reportDateTime = document.getElementById("reportDateTime");
+const tabBtns = document.querySelectorAll(".tab-btn");
+let currentData = {};
 
 // Click to browse
 dropBox.addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", (e) => processFile(e.target.files[0]));
+
+// Tab switching
+tabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        tabBtns.forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".report-section").forEach(s => s.classList.remove("active"));
+        
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.tab).classList.add("active");
+    });
+});
 
 // Drag and drop events
 dropZone.addEventListener("dragover", (e) => {
@@ -309,11 +455,25 @@ saveBtn.addEventListener("click", () => {
 
 // Download Excel button
 excelBtn.addEventListener("click", () => {
-    const table = document.getElementById("resultTable");
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.table_to_sheet(table);
     
-    XLSX.utils.book_append_sheet(wb, ws, "Collection Report");
+    // Add current report
+    const currentTable = document.getElementById("resultTable");
+    const currentWs = XLSX.utils.table_to_sheet(currentTable);
+    XLSX.utils.book_append_sheet(wb, currentWs, "Current Report");
+    
+    // Add monthly reports
+    for (let i = 1; i <= 4; i++) {
+        const monthTable = document.getElementById(`month${i}Table`);
+        const monthHeader = document.getElementById(`month${i}Header`);
+        
+        if (monthTable && monthHeader.textContent) {
+            const monthWs = XLSX.utils.table_to_sheet(monthTable);
+            const sheetName = monthHeader.textContent || `Month ${i}`;
+            XLSX.utils.book_append_sheet(wb, monthWs, sheetName);
+        }
+    }
+    
     XLSX.writeFile(wb, "Collection_Report_" + new Date().toISOString().slice(0,10) + ".xlsx");
 });
 
@@ -358,6 +518,7 @@ function processFile(file) {
 
         const plazaCol = headers.findIndex(h => h && h.includes("plaza"));
         const collectionCol = 21;
+        const invoiceDateCol = 14; // Column O (0-based index)
 
         if (plazaCol === -1) {
             alert("Plaza column not found.\n\nDetected headers:\n" + headers.join(" | "));
@@ -365,6 +526,7 @@ function processFile(file) {
         }
 
         const result = {};
+        const monthlyData = {};
 
         for (let i = HEADER_ROW_INDEX + 1; i < rows.length; i++) {
             const row = rows[i];
@@ -372,6 +534,7 @@ function processFile(file) {
 
             const plaza = row[plazaCol];
             const rawCollection = row[collectionCol];
+            const invoiceDate = invoiceDateCol !== -1 ? row[invoiceDateCol] : null;
             
             let collection = 0;
             if (rawCollection != null && rawCollection !== "") {
@@ -381,27 +544,70 @@ function processFile(file) {
 
             if (!plaza || String(plaza).toLowerCase().trim() === "plaza") continue;
 
+            // Current report
             if (!result[plaza]) {
                 result[plaza] = { plazaQty: 0, collectionQty: 0 };
             }
-
             result[plaza].plazaQty++;
-
             if (collection > 0) {
                 result[plaza].collectionQty++;
             }
+
+            // Monthly report
+            if (invoiceDate) {
+                const monthKey = getMonthKey(invoiceDate);
+                if (monthKey) {
+                    if (!monthlyData[monthKey]) monthlyData[monthKey] = {};
+                    if (!monthlyData[monthKey][plaza]) {
+                        monthlyData[monthKey][plaza] = { plazaQty: 0, collectionQty: 0 };
+                    }
+                    monthlyData[monthKey][plaza].plazaQty++;
+                    if (collection > 0) {
+                        monthlyData[monthKey][plaza].collectionQty++;
+                    }
+                }
+            }
         }
 
+        currentData = { result, monthlyData };
+        
         // Set date and time
         reportDateTime.textContent = formatDateTime();
         
         renderTable(result);
+        renderSeparateMonthlyReports(monthlyData);
         
         dropZone.classList.add("hidden");
         resultContainer.classList.add("visible");
     };
 
     reader.readAsArrayBuffer(file);
+}
+
+function getMonthKey(dateValue) {
+    let date;
+    
+    if (typeof dateValue === 'number') {
+        // Excel serial date
+        date = new Date((dateValue - 25569) * 86400 * 1000);
+    } else if (typeof dateValue === 'string') {
+        date = new Date(dateValue);
+    } else {
+        return null;
+    }
+    
+    if (isNaN(date.getTime())) return null;
+    
+    const now = new Date();
+    const fourMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    
+    if (date < fourMonthsAgo) return null;
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    
+    return monthName;
 }
 
 function renderTable(data) {
@@ -412,6 +618,7 @@ function renderTable(data) {
     let totalCollectionQty = 0;
 
     Object.entries(data).forEach(([plaza, values]) => {
+        const notCollectedQty = values.plazaQty - values.collectionQty;
         const collPercent = values.plazaQty > 0 
             ? ((values.collectionQty / values.plazaQty) * 100).toFixed(2) 
             : "0.00";
@@ -424,11 +631,13 @@ function renderTable(data) {
                 <td>${plaza}</td>
                 <td>${values.plazaQty}</td>
                 <td>${values.collectionQty}</td>
+                <td>${notCollectedQty}</td>
                 <td class="percent-cell">${collPercent}%</td>
             </tr>
         `;
     });
 
+    const totalNotCollected = totalPlazaQty - totalCollectionQty;
     const totalPercent = totalPlazaQty > 0 
         ? ((totalCollectionQty / totalPlazaQty) * 100).toFixed(2) 
         : "0.00";
@@ -438,9 +647,67 @@ function renderTable(data) {
             <td>Total</td>
             <td>${totalPlazaQty}</td>
             <td>${totalCollectionQty}</td>
+            <td>${totalNotCollected}</td>
             <td>${totalPercent}%</td>
         </tr>
     `;
+}
+
+function renderSeparateMonthlyReports(monthlyData) {
+    const months = Object.keys(monthlyData).sort().reverse();
+    
+    // Render each month separately (up to 4 months)
+    for (let i = 0; i < 4 && i < months.length; i++) {
+        const month = months[i];
+        const tableId = `month${i + 1}Table`;
+        const headerId = `month${i + 1}Header`;
+        const tbody = document.querySelector(`#${tableId} tbody`);
+        const header = document.getElementById(headerId);
+        
+        if (!tbody) continue;
+        
+        const plazas = monthlyData[month];
+        let monthTotalQty = 0;
+        let monthTotalCollection = 0;
+        
+        tbody.innerHTML = "";
+        header.textContent = month;
+        
+        Object.entries(plazas).forEach(([plaza, values]) => {
+            const notCollectedQty = values.plazaQty - values.collectionQty;
+            monthTotalQty += values.plazaQty;
+            monthTotalCollection += values.collectionQty;
+            
+            const collPercent = values.plazaQty > 0 
+                ? ((values.collectionQty / values.plazaQty) * 100).toFixed(2) 
+                : "0.00";
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${plaza}</td>
+                    <td>${values.plazaQty}</td>
+                    <td>${values.collectionQty}</td>
+                    <td>${notCollectedQty}</td>
+                    <td class="percent-cell">${collPercent}%</td>
+                </tr>
+            `;
+        });
+
+        const monthNotCollected = monthTotalQty - monthTotalCollection;
+        const monthPercent = monthTotalQty > 0 
+            ? ((monthTotalCollection / monthTotalQty) * 100).toFixed(2) 
+            : "0.00";
+
+        tbody.innerHTML += `
+            <tr class="total-row">
+                <td>Total</td>
+                <td>${monthTotalQty}</td>
+                <td>${monthTotalCollection}</td>
+                <td>${monthNotCollected}</td>
+                <td>${monthPercent}%</td>
+            </tr>
+        `;
+    }
 }
 </script>
 
