@@ -86,8 +86,8 @@
     /* Report Header */
     .report-header {
         text-align: center;
-        margin-bottom: 25px;
-        padding-bottom: 20px;
+        margin-bottom: 30px;
+        padding-bottom: 25px;
         border-bottom: 3px solid #dee2e6;
     }
     .report-header h1 {
@@ -107,6 +107,26 @@
         width: 100%;
         border-collapse: collapse;
         border: 2px solid #0056b3;
+        margin-bottom: 20px;
+    }
+    
+    /* Compact layout for 2025 Month Wise */
+    #month2025 {
+        overflow-x: auto;
+    }
+    
+    #month2025Table {
+        min-width: 900px;
+    }
+    
+    #month2025Table th,
+    #month2025Table td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+    
+    #month2025Table th {
+        font-size: 12px;
     }
     th {
         background: #0056b3;
@@ -171,6 +191,7 @@
         justify-content: center;
         gap: 15px;
         margin-top: 25px;
+        flex-wrap: wrap;
     }
     .btn {
         padding: 14px 35px;
@@ -184,6 +205,7 @@
     }
     .btn:hover {
         transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
     }
     .btn-reset {
         background: #0056b3;
@@ -214,28 +236,31 @@
     /* Tabs for reports */
     .report-tabs {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         margin-bottom: 25px;
         border-bottom: 2px solid #dee2e6;
+        flex-wrap: wrap;
+        padding-bottom: 10px;
     }
     .tab-btn {
-        padding: 12px 25px;
-        background: #f5f5f5;
-        border: none;
+        padding: 10px 16px;
+        background: #f8f9fa;
+        border: 2px solid #dee2e6;
         cursor: pointer;
-        font-size: 15px;
+        font-size: 13px;
         font-weight: 600;
-        color: #333333;
-        border-bottom: 3px solid transparent;
+        color: #495057;
+        border-radius: 6px 6px 0 0;
         transition: all 0.2s ease;
     }
-    .tab-btn.active {
-        background: #ffffff;
-        color: #0056b3;
-        border-bottom-color: #0056b3;
-    }
     .tab-btn:hover {
-        background: #ffffff;
+        background: #e9ecef;
+        border-color: #0056b3;
+    }
+    .tab-btn.active {
+        background: #0056b3;
+        color: #ffffff;
+        border-color: #0056b3;
     }
     
     .report-section {
@@ -243,17 +268,23 @@
     }
     .report-section.active {
         display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
     
     /* Month header */
     .month-header {
-        background: #e3f2fd;
-        padding: 15px;
+        background: linear-gradient(135deg, #0056b3 0%, #004494 100%);
+        padding: 15px 20px;
         margin-bottom: 20px;
-        border-left: 4px solid #0056b3;
+        border-radius: 8px;
         font-size: 16px;
         font-weight: 700;
-        color: #0056b3;
+        color: #ffffff;
     }
 </style>
 </head>
@@ -286,6 +317,9 @@
         <button class="tab-btn" data-tab="month2">Month 2</button>
         <button class="tab-btn" data-tab="month3">Month 3</button>
         <button class="tab-btn" data-tab="month4">Month 4</button>
+        <button class="tab-btn" data-tab="year2024">2024 Account</button>
+        <button class="tab-btn" data-tab="year2025">2025 Account</button>
+        <button class="tab-btn" data-tab="month2025">2025 Month Wise</button>
     </div>
 
     <!-- Current Report Section -->
@@ -370,6 +404,55 @@
             </thead>
             <tbody></tbody>
         </table>
+    </div>
+
+    <!-- 2024 Account Section -->
+    <div class="report-section" id="year2024">
+        <div class="month-header">2024 Account Report</div>
+        <table id="year2024Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 2025 Account Section -->
+    <div class="report-section" id="year2025">
+        <div class="month-header">2025 Account Report</div>
+        <table id="year2025Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 2025 Month Wise Section -->
+    <div class="report-section" id="month2025">
+        <div class="month-header">2025 Month Wise Report</div>
+        <div id="month2025Container" style="overflow-x: auto;">
+            <table id="month2025Table">
+                <thead id="month2025Head">
+                    <tr>
+                        <th>Plaza Name</th>
+                    </tr>
+                </thead>
+                <tbody id="month2025Body"></tbody>
+            </table>
+        </div>
     </div>
     
     <div class="btn-container">
@@ -474,6 +557,20 @@ excelBtn.addEventListener("click", () => {
         }
     }
     
+    // Add yearly reports
+    const year2024Table = document.getElementById("year2024Table");
+    const year2024Ws = XLSX.utils.table_to_sheet(year2024Table);
+    XLSX.utils.book_append_sheet(wb, year2024Ws, "2024 Account");
+    
+    const year2025Table = document.getElementById("year2025Table");
+    const year2025Ws = XLSX.utils.table_to_sheet(year2025Table);
+    XLSX.utils.book_append_sheet(wb, year2025Ws, "2025 Account");
+    
+    // Add 2025 Month Wise report
+    const month2025Table = document.getElementById("month2025Table");
+    const month2025Ws = XLSX.utils.table_to_sheet(month2025Table);
+    XLSX.utils.book_append_sheet(wb, month2025Ws, "2025 Month Wise");
+    
     XLSX.writeFile(wb, "Collection_Report_" + new Date().toISOString().slice(0,10) + ".xlsx");
 });
 
@@ -489,6 +586,47 @@ function formatDateTime() {
         second: '2-digit'
     };
     return now.toLocaleDateString('en-US', options);
+}
+
+function getMonthName(dateValue) {
+    let date;
+    
+    if (typeof dateValue === 'number') {
+        date = new Date((dateValue - 25569) * 86400 * 1000);
+    } else if (typeof dateValue === 'string') {
+        // Handle "29-Jul-24" format
+        const dateStr = dateValue.trim();
+        const parts = dateStr.split('-');
+        
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const monthStr = parts[1];
+            let year = parseInt(parts[2]);
+            
+            // Convert 2-digit year to 4-digit (24 -> 2024, 99 -> 1999)
+            if (year < 100) {
+                year = year <= 30 ? 2000 + year : 1900 + year;
+            }
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase());
+            
+            if (monthIndex !== -1) {
+                date = new Date(year, monthIndex, day);
+            } else {
+                date = new Date(dateValue);
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+    } else {
+        return null;
+    }
+    
+    if (isNaN(date.getTime())) return null;
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return monthNames[date.getMonth()];
 }
 
 function processFile(file) {
@@ -527,6 +665,8 @@ function processFile(file) {
 
         const result = {};
         const monthlyData = {};
+        const yearlyData = { 2024: {}, 2025: {} };
+        const monthlyData2025 = {};
 
         for (let i = HEADER_ROW_INDEX + 1; i < rows.length; i++) {
             const row = rows[i];
@@ -566,16 +706,45 @@ function processFile(file) {
                         monthlyData[monthKey][plaza].collectionQty++;
                     }
                 }
+                
+                // Yearly report
+                const year = getYear(invoiceDate);
+                if (year && (year === 2024 || year === 2025)) {
+                    if (!yearlyData[year][plaza]) {
+                        yearlyData[year][plaza] = { plazaQty: 0, collectionQty: 0 };
+                    }
+                    yearlyData[year][plaza].plazaQty++;
+                    if (collection > 0) {
+                        yearlyData[year][plaza].collectionQty++;
+                    }
+                }
+                
+                // 2025 Monthly breakdown
+                if (year === 2025) {
+                    const monthName = getMonthName(invoiceDate);
+                    if (monthName) {
+                        if (!monthlyData2025[monthName]) monthlyData2025[monthName] = {};
+                        if (!monthlyData2025[monthName][plaza]) {
+                            monthlyData2025[monthName][plaza] = { plazaQty: 0, collectionQty: 0 };
+                        }
+                        monthlyData2025[monthName][plaza].plazaQty++;
+                        if (collection > 0) {
+                            monthlyData2025[monthName][plaza].collectionQty++;
+                        }
+                    }
+                }
             }
         }
 
-        currentData = { result, monthlyData };
+        currentData = { result, monthlyData, yearlyData, monthlyData2025 };
         
         // Set date and time
         reportDateTime.textContent = formatDateTime();
         
         renderTable(result);
         renderSeparateMonthlyReports(monthlyData);
+        renderYearlyReports(yearlyData);
+        render2025MonthWiseReport(monthlyData2025);
         
         dropZone.classList.add("hidden");
         resultContainer.classList.add("visible");
@@ -591,7 +760,31 @@ function getMonthKey(dateValue) {
         // Excel serial date
         date = new Date((dateValue - 25569) * 86400 * 1000);
     } else if (typeof dateValue === 'string') {
-        date = new Date(dateValue);
+        // Handle "29-Jul-24" format
+        const dateStr = dateValue.trim();
+        const parts = dateStr.split('-');
+        
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const monthStr = parts[1];
+            let year = parseInt(parts[2]);
+            
+            // Convert 2-digit year to 4-digit (24 -> 2024, 99 -> 1999)
+            if (year < 100) {
+                year = year <= 30 ? 2000 + year : 1900 + year;
+            }
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase());
+            
+            if (monthIndex !== -1) {
+                date = new Date(year, monthIndex, day);
+            } else {
+                date = new Date(dateValue);
+            }
+        } else {
+            date = new Date(dateValue);
+        }
     } else {
         return null;
     }
@@ -610,6 +803,46 @@ function getMonthKey(dateValue) {
     return monthName;
 }
 
+function getYear(dateValue) {
+    let date;
+    
+    if (typeof dateValue === 'number') {
+        // Excel serial date
+        date = new Date((dateValue - 25569) * 86400 * 1000);
+    } else if (typeof dateValue === 'string') {
+        // Handle "29-Jul-24" format
+        const dateStr = dateValue.trim();
+        const parts = dateStr.split('-');
+        
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const monthStr = parts[1];
+            let year = parseInt(parts[2]);
+            
+            // Convert 2-digit year to 4-digit (24 -> 2024, 99 -> 1999)
+            if (year < 100) {
+                year = year <= 30 ? 2000 + year : 1900 + year;
+            }
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase());
+            
+            if (monthIndex !== -1) {
+                date = new Date(year, monthIndex, day);
+            } else {
+                date = new Date(dateValue);
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+    } else {
+        return null;
+    }
+    
+    if (isNaN(date.getTime())) return null;
+    
+    return date.getFullYear();
+}
 function renderTable(data) {
     const tbody = document.querySelector("#resultTable tbody");
     tbody.innerHTML = "";
@@ -708,6 +941,158 @@ function renderSeparateMonthlyReports(monthlyData) {
             </tr>
         `;
     }
+}
+
+function renderYearlyReports(yearlyData) {
+    // Render 2024 report
+    renderYearTable(yearlyData[2024], 'year2024Table');
+    
+    // Render 2025 report
+    renderYearTable(yearlyData[2025], 'year2025Table');
+}
+
+function renderYearTable(data, tableId) {
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    if (!tbody) return;
+    
+    tbody.innerHTML = "";
+    
+    let totalQty = 0;
+    let totalCollection = 0;
+    
+    Object.entries(data).forEach(([plaza, values]) => {
+        const notCollectedQty = values.plazaQty - values.collectionQty;
+        totalQty += values.plazaQty;
+        totalCollection += values.collectionQty;
+        
+        const collPercent = values.plazaQty > 0 
+            ? ((values.collectionQty / values.plazaQty) * 100).toFixed(2) 
+            : "0.00";
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>${plaza}</td>
+                <td>${values.plazaQty}</td>
+                <td>${values.collectionQty}</td>
+                <td>${notCollectedQty}</td>
+                <td class="percent-cell">${collPercent}%</td>
+            </tr>
+        `;
+    });
+
+    const totalNotCollected = totalQty - totalCollection;
+    const totalPercent = totalQty > 0 
+        ? ((totalCollection / totalQty) * 100).toFixed(2) 
+        : "0.00";
+
+    tbody.innerHTML += `
+        <tr class="total-row">
+            <td>Total</td>
+            <td>${totalQty}</td>
+            <td>${totalCollection}</td>
+            <td>${totalNotCollected}</td>
+            <td>${totalPercent}%</td>
+        </tr>
+    `;
+}
+
+function render2025MonthWiseReport(monthlyData2025) {
+    const thead = document.querySelector("#month2025Head");
+    const tbody = document.querySelector("#month2025Body");
+    
+    if (!thead || !tbody) return;
+    
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    // Get all unique plazas
+    const allPlazas = new Set();
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        Object.keys(plazas).forEach(plaza => allPlazas.add(plaza));
+    });
+    
+    const plazaList = Array.from(allPlazas).sort();
+    
+    // Build header with months
+    let headerRow = '<tr><th>Plaza Name</th>';
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            headerRow += `<th colspan="4" style="text-align: center; background: #e3f2fd;">${month}</th>`;
+        }
+    });
+    headerRow += '</tr>';
+    
+    // Add sub-headers
+    headerRow += '<tr><th>Plaza Name</th>';
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            headerRow += '<th style="font-size: 11px;">AC Qty</th><th style="font-size: 11px;">Coll Qty</th><th style="font-size: 11px;">Not Coll</th><th style="font-size: 11px;">%</th>';
+        }
+    });
+    headerRow += '</tr>';
+    
+    thead.innerHTML = headerRow;
+    tbody.innerHTML = '';
+    
+    // Build data rows
+    plazaList.forEach(plaza => {
+        let row = `<tr><td style="font-weight: 700;">${plaza}</td>`;
+        
+        months.forEach(month => {
+            const plazas = monthlyData2025[month] || {};
+            const values = plazas[plaza];
+            
+            if (Object.keys(monthlyData2025[month] || {}).length > 0) {
+                if (values) {
+                    const notCollected = values.plazaQty - values.collectionQty;
+                    const percent = values.plazaQty > 0 
+                        ? ((values.collectionQty / values.plazaQty) * 100).toFixed(1)
+                        : "0.0";
+                    
+                    row += `<td style="font-size: 12px;">${values.plazaQty}</td>`;
+                    row += `<td style="font-size: 12px;">${values.collectionQty}</td>`;
+                    row += `<td style="font-size: 12px;">${notCollected}</td>`;
+                    row += `<td style="font-size: 12px; font-weight: 700; color: #0056b3;">${percent}%</td>`;
+                } else {
+                    row += '<td style="font-size: 12px;">-</td><td style="font-size: 12px;">-</td><td style="font-size: 12px;">-</td><td style="font-size: 12px;">-</td>';
+                }
+            }
+        });
+        
+        row += '</tr>';
+        tbody.innerHTML += row;
+    });
+    
+    // Add totals row
+    let totalRow = '<tr style="background: #198754; color: white; font-weight: 700;"><td>Total</td>';
+    
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            let monthTotalQty = 0;
+            let monthTotalCollection = 0;
+            
+            Object.values(plazas).forEach(values => {
+                monthTotalQty += values.plazaQty;
+                monthTotalCollection += values.collectionQty;
+            });
+            
+            const monthNotCollected = monthTotalQty - monthTotalCollection;
+            const monthPercent = monthTotalQty > 0 
+                ? ((monthTotalCollection / monthTotalQty) * 100).toFixed(1)
+                : "0.0";
+            
+            totalRow += `<td style="font-size: 12px;">${monthTotalQty}</td>`;
+            totalRow += `<td style="font-size: 12px;">${monthTotalCollection}</td>`;
+            totalRow += `<td style="font-size: 12px;">${monthNotCollected}</td>`;
+            totalRow += `<td style="font-size: 12px;">${monthPercent}%</td>`;
+        }
+    });
+    
+    totalRow += '</tr>';
+    tbody.innerHTML += totalRow;
 }
 </script>
 
