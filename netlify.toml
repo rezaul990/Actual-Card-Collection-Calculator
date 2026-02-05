@@ -1,6 +1,6 @@
 [build]
   base = "collection-report-react"
-  command = "npm install && npm run build"
+  command = "npm ci && npm run build"
   publish = "dist"
 
 [[redirects]]
