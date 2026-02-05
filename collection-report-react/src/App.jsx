@@ -10,6 +10,10 @@ function App() {
 
   return (
     <div className="app">
+      <div className="developer-credit-top">
+        <span>Developed by: Md. Rezaul Karim RCM</span>
+      </div>
+
       {!showReport ? (
         <UploadView onFileUpload={handleFileUpload} error={error} />
       ) : (
@@ -21,6 +25,10 @@ function App() {
           onReset={handleReset}
         />
       )}
+
+      <div className="developer-credit-bottom">
+        <span>© Developed by: Md. Rezaul Karim RCM</span>
+      </div>
     </div>
   )
 }
