@@ -320,6 +320,7 @@
         <button class="tab-btn" data-tab="year2024">2024 Account</button>
         <button class="tab-btn" data-tab="year2025">2025 Account</button>
         <button class="tab-btn" data-tab="month2025">2025 Month Wise</button>
+        <button class="tab-btn" data-tab="notcoll2025">2025 Not Collected</button>
     </div>
 
     <!-- Current Report Section -->
@@ -454,6 +455,21 @@
             </table>
         </div>
     </div>
+
+    <!-- 2025 Not Collected Qty Section -->
+    <div class="report-section" id="notcoll2025">
+        <div class="month-header">2025 Month Wise Not Collected Qty</div>
+        <div id="notcoll2025Container" style="overflow-x: auto;">
+            <table id="notcoll2025Table">
+                <thead id="notcoll2025Head">
+                    <tr>
+                        <th>Plaza Name</th>
+                    </tr>
+                </thead>
+                <tbody id="notcoll2025Body"></tbody>
+            </table>
+        </div>
+    </div>
     
     <div class="btn-container">
         <button class="btn btn-save" id="saveBtn">📷 Save as Image</button>
@@ -570,6 +586,11 @@ excelBtn.addEventListener("click", () => {
     const month2025Table = document.getElementById("month2025Table");
     const month2025Ws = XLSX.utils.table_to_sheet(month2025Table);
     XLSX.utils.book_append_sheet(wb, month2025Ws, "2025 Month Wise");
+    
+    // Add 2025 Not Collected report
+    const notcoll2025Table = document.getElementById("notcoll2025Table");
+    const notcoll2025Ws = XLSX.utils.table_to_sheet(notcoll2025Table);
+    XLSX.utils.book_append_sheet(wb, notcoll2025Ws, "2025 Not Collected");
     
     XLSX.writeFile(wb, "Collection_Report_" + new Date().toISOString().slice(0,10) + ".xlsx");
 });
@@ -745,6 +766,7 @@ function processFile(file) {
         renderSeparateMonthlyReports(monthlyData);
         renderYearlyReports(yearlyData);
         render2025MonthWiseReport(monthlyData2025);
+        render2025NotCollectedReport(monthlyData2025);
         
         dropZone.classList.add("hidden");
         resultContainer.classList.add("visible");
@@ -1088,6 +1110,78 @@ function render2025MonthWiseReport(monthlyData2025) {
             totalRow += `<td style="font-size: 12px;">${monthTotalCollection}</td>`;
             totalRow += `<td style="font-size: 12px;">${monthNotCollected}</td>`;
             totalRow += `<td style="font-size: 12px;">${monthPercent}%</td>`;
+        }
+    });
+    
+    totalRow += '</tr>';
+    tbody.innerHTML += totalRow;
+}
+
+function render2025NotCollectedReport(monthlyData2025) {
+    const thead = document.querySelector("#notcoll2025Head");
+    const tbody = document.querySelector("#notcoll2025Body");
+    
+    if (!thead || !tbody) return;
+    
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    // Get all unique plazas
+    const allPlazas = new Set();
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        Object.keys(plazas).forEach(plaza => allPlazas.add(plaza));
+    });
+    
+    const plazaList = Array.from(allPlazas).sort();
+    
+    // Build header with months
+    let headerRow = '<tr><th>Plaza Name</th>';
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            headerRow += `<th style="text-align: center; background: #e3f2fd;">${month}</th>`;
+        }
+    });
+    headerRow += '</tr>';
+    
+    thead.innerHTML = headerRow;
+    tbody.innerHTML = '';
+    
+    // Build data rows - only Not Collected Qty
+    plazaList.forEach(plaza => {
+        let row = `<tr><td style="font-weight: 700;">${plaza}</td>`;
+        
+        months.forEach(month => {
+            const plazas = monthlyData2025[month] || {};
+            const values = plazas[plaza];
+            
+            if (Object.keys(monthlyData2025[month] || {}).length > 0) {
+                if (values) {
+                    const notCollected = values.plazaQty - values.collectionQty;
+                    row += `<td style="font-size: 13px; text-align: center; font-weight: 600;">${notCollected}</td>`;
+                } else {
+                    row += '<td style="font-size: 13px; text-align: center;">-</td>';
+                }
+            }
+        });
+        
+        row += '</tr>';
+        tbody.innerHTML += row;
+    });
+    
+    // Add totals row
+    let totalRow = '<tr style="background: #198754; color: white; font-weight: 700;"><td>Total</td>';
+    
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            let monthTotalNotCollected = 0;
+            
+            Object.values(plazas).forEach(values => {
+                monthTotalNotCollected += (values.plazaQty - values.collectionQty);
+            });
+            
+            totalRow += `<td style="font-size: 13px; text-align: center;">${monthTotalNotCollected}</td>`;
         }
     });
     
