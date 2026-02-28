@@ -1,6 +1,6 @@
 export function parseExcelData(rows) {
   const HEADER_ROW_INDEX = 5
-  const collectionCol = 21 // Column V (0-based index)
+  const collectionCol = 20 // Column U (0-based index)
   const invoiceDateCol = 14 // Column O (0-based index)
 
   if (!rows[HEADER_ROW_INDEX] || rows[HEADER_ROW_INDEX].length === 0) {
