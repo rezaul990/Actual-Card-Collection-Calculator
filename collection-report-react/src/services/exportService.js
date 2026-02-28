@@ -34,7 +34,7 @@ export function exportAsExcel(data) {
   // Current Report
   addCurrentReportSheet(wb, data.result)
 
-  // Monthly Reports
+  // Monthly Reports (Last 6 months)
   addMonthlyReportSheets(wb, data.monthlyData)
 
   // Yearly Reports
@@ -45,6 +45,11 @@ export function exportAsExcel(data) {
 
   // 2025 Not Collected
   add2025NotCollectedSheet(wb, data.monthlyData2025)
+
+  // 2024 Month Wise
+  if (data.monthlyData2024) {
+    add2024MonthWiseSheet(wb, data.monthlyData2024)
+  }
 
   // 2024 Month Wise Not Collected
   if (data.monthlyData2024) {
@@ -70,6 +75,16 @@ export function exportAsExcel(data) {
     addDetailedAccountSheet(wb, data.accountDetails2024, '2024 Detailed Accounts')
   }
 
+  // 2025 Daily Collection Comparison
+  if (data.dailyCollectionComparison2025 && data.dailyCollectionComparison2025.length > 0) {
+    addDailyCollectionComparisonSheet(wb, data.dailyCollectionComparison2025, '2025 Daily Collection')
+  }
+
+  // 2024 Daily Collection Comparison
+  if (data.dailyCollectionComparison2024 && data.dailyCollectionComparison2024.length > 0) {
+    addDailyCollectionComparisonSheet(wb, data.dailyCollectionComparison2024, '2024 Daily Collection')
+  }
+
   XLSX.writeFile(wb, `Collection_Report_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
@@ -89,7 +104,8 @@ function addCurrentReportSheet(wb, data) {
 function addMonthlyReportSheets(wb, monthlyData) {
   const months = Object.keys(monthlyData).sort().reverse()
 
-  for (let i = 0; i < 4 && i < months.length; i++) {
+  // Export all 6 months
+  for (let i = 0; i < 6 && i < months.length; i++) {
     const month = months[i]
     const monthData = monthlyData[month]
 
@@ -463,6 +479,218 @@ function addDetailedAccountSheet(wb, accountDetails, sheetName) {
     { wch: 18 }, // Previous Month Overdue
     { wch: 15 }, // Collection Target
     { wch: 15 }, // Collection Achieve
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+}
+
+function add2024MonthWiseSheet(wb, monthlyData2024) {
+  if (!monthlyData2024 || Object.keys(monthlyData2024).length === 0) {
+    return
+  }
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+  const allPlazas = new Set()
+  months.forEach(month => {
+    const plazas = monthlyData2024[month] || {}
+    Object.keys(plazas).forEach(plaza => allPlazas.add(plaza))
+  })
+
+  const plazaList = Array.from(allPlazas).sort()
+
+  // Calculate month totals
+  const monthTotals = {}
+  months.forEach(month => {
+    const plazas = monthlyData2024[month] || {}
+    if (Object.keys(plazas).length > 0) {
+      let total = 0
+      Object.values(plazas).forEach(values => {
+        total += values.plazaQty
+      })
+      monthTotals[month] = total
+    }
+  })
+
+  // Calculate plaza totals
+  const plazaTotals = {}
+  plazaList.forEach(plaza => {
+    let total = 0
+    months.forEach(month => {
+      const plazas = monthlyData2024[month] || {}
+      const values = plazas[plaza]
+      if (values) {
+        total += values.plazaQty
+      }
+    })
+    plazaTotals[plaza] = total
+  })
+
+  // Calculate grand total
+  let grandTotal = 0
+  Object.values(plazaTotals).forEach(total => {
+    grandTotal += total
+  })
+
+  // Build data with totals
+  const wsData = plazaList.map(plaza => {
+    const row = { 'Plaza Name': plaza }
+    months.forEach(month => {
+      const plazas = monthlyData2024[month] || {}
+      const values = plazas[plaza]
+      row[month] = values ? values.plazaQty : '-'
+    })
+    row['Total'] = plazaTotals[plaza]
+    return row
+  })
+
+  // Add totals row
+  const totalsRow = { 'Plaza Name': 'Total' }
+  months.forEach(month => {
+    totalsRow[month] = monthTotals[month] || '-'
+  })
+  totalsRow['Total'] = grandTotal
+  wsData.push(totalsRow)
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+  XLSX.utils.book_append_sheet(wb, ws, '2024 Month Wise')
+}
+
+function addDailyCollectionComparisonSheet(wb, accountDetails, sheetName) {
+  if (!accountDetails || accountDetails.length === 0) {
+    return
+  }
+
+  // Group by division and area for subtotals
+  const divisionGroups = {}
+  const areaGroups = {}
+
+  accountDetails.forEach(account => {
+    const division = account.division || 'Unknown'
+    const area = account.area || 'Unknown'
+
+    if (!divisionGroups[division]) {
+      divisionGroups[division] = []
+    }
+    divisionGroups[division].push(account)
+
+    if (!areaGroups[area]) {
+      areaGroups[area] = []
+    }
+    areaGroups[area].push(account)
+  })
+
+  // Create summary data with division and area wise subtotals
+  const wsData = []
+
+  // Add header
+  wsData.push({
+    'Division': 'DIVISION WISE SUMMARY',
+    'Area': '',
+    'Plaza': '',
+    'AC Qty': '',
+    'Collection Achieve': '',
+    'Not Collected': '',
+    'Coll %': '',
+  })
+
+  // Add division wise data
+  let totalDivisionQty = 0
+  let totalDivisionCollection = 0
+
+  Object.entries(divisionGroups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([division, accounts]) => {
+      const qty = accounts.length
+      const collected = accounts.filter(a => a.collectionAchieve > 0).length
+      const notCollected = qty - collected
+      const percent = qty > 0 ? ((collected / qty) * 100).toFixed(2) : '0.00'
+
+      totalDivisionQty += qty
+      totalDivisionCollection += collected
+
+      wsData.push({
+        'Division': division,
+        'Area': '',
+        'Plaza': '',
+        'AC Qty': qty,
+        'Collection Achieve': collected,
+        'Not Collected': notCollected,
+        'Coll %': percent + '%',
+      })
+    })
+
+  wsData.push({
+    'Division': 'Division Total',
+    'Area': '',
+    'Plaza': '',
+    'AC Qty': totalDivisionQty,
+    'Collection Achieve': totalDivisionCollection,
+    'Not Collected': totalDivisionQty - totalDivisionCollection,
+    'Coll %': ((totalDivisionCollection / totalDivisionQty) * 100).toFixed(2) + '%',
+  })
+
+  // Add blank row
+  wsData.push({})
+
+  // Add area wise summary
+  wsData.push({
+    'Division': 'AREA WISE SUMMARY',
+    'Area': '',
+    'Plaza': '',
+    'AC Qty': '',
+    'Collection Achieve': '',
+    'Not Collected': '',
+    'Coll %': '',
+  })
+
+  // Add area wise data
+  let totalAreaQty = 0
+  let totalAreaCollection = 0
+
+  Object.entries(areaGroups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([area, accounts]) => {
+      const qty = accounts.length
+      const collected = accounts.filter(a => a.collectionAchieve > 0).length
+      const notCollected = qty - collected
+      const percent = qty > 0 ? ((collected / qty) * 100).toFixed(2) : '0.00'
+
+      totalAreaQty += qty
+      totalAreaCollection += collected
+
+      wsData.push({
+        'Division': '',
+        'Area': area,
+        'Plaza': '',
+        'AC Qty': qty,
+        'Collection Achieve': collected,
+        'Not Collected': notCollected,
+        'Coll %': percent + '%',
+      })
+    })
+
+  wsData.push({
+    'Division': '',
+    'Area': 'Area Total',
+    'Plaza': '',
+    'AC Qty': totalAreaQty,
+    'Collection Achieve': totalAreaCollection,
+    'Not Collected': totalAreaQty - totalAreaCollection,
+    'Coll %': ((totalAreaCollection / totalAreaQty) * 100).toFixed(2) + '%',
+  })
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 20 }, // Division
+    { wch: 20 }, // Area
+    { wch: 25 }, // Plaza
+    { wch: 12 }, // AC Qty
+    { wch: 18 }, // Collection Achieve
+    { wch: 15 }, // Not Collected
+    { wch: 12 }, // Coll %
   ]
 
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
