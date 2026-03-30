@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Account Wise Actual Card Collection Report</title>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #f0f2f5;
+        font-size: 16px;
+    }
+    
+    /* Drop Zone - Full Page */
+    .drop-zone {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+    .drop-zone.hidden {
+        display: none;
+    }
+    .drop-zone.dragover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    .drop-zone-content {
+        text-align: center;
+        color: white;
+    }
+    .drop-zone-content h1 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+    .drop-icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+    }
+    .drop-zone-box {
+        border: 3px dashed rgba(255,255,255,0.7);
+        border-radius: 20px;
+        padding: 60px 80px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .drop-zone-box:hover, .drop-zone.dragover .drop-zone-box {
+        border-color: white;
+        background: rgba(255,255,255,0.1);
+    }
+    .drop-zone-content p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+    .drop-zone-content input[type="file"] {
+        display: none;
+    }
+
+    /* Result Container */
+    .container {
+        width: 90%;
+        max-width: 1200px;
+        margin: 30px auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        display: none;
+    }
+    .container.visible {
+        display: block;
+    }
+    
+    /* Report Header */
+    .report-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 25px;
+        border-bottom: 3px solid #dee2e6;
+    }
+    .report-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 10px;
+    }
+    .report-header .datetime {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333333;
+    }
+    
+    /* Table Styles */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #0056b3;
+        margin-bottom: 20px;
+    }
+    
+    /* Compact layout for 2025 Month Wise */
+    #month2025 {
+        overflow-x: auto;
+    }
+    
+    #month2025Table {
+        min-width: 900px;
+    }
+    
+    #month2025Table th,
+    #month2025Table td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+    
+    #month2025Table th {
+        font-size: 12px;
+    }
+    th {
+        background: #0056b3;
+        color: #ffffff;
+        padding: 16px 20px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid #004494;
+    }
+    th:first-child {
+        text-align: left;
+    }
+    td {
+        padding: 14px 20px;
+        text-align: center;
+        border: 1px solid #cccccc;
+        font-size: 15px;
+        font-weight: 600;
+        color: #000000;
+    }
+    td:first-child {
+        text-align: left;
+        font-weight: 700;
+        color: #000000;
+    }
+    tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+    tbody tr:nth-child(even) {
+        background-color: #f5f5f5;
+    }
+    tbody tr:hover {
+        background-color: #e0e0e0;
+    }
+    tbody tr.total-row {
+        background: #198754;
+        color: #ffffff;
+    }
+    tbody tr.total-row td {
+        padding: 16px 20px;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 16px;
+        border: 1px solid #146c43;
+    }
+    tbody tr.total-row:hover {
+        background: #198754;
+    }
+    
+    /* Percentage styling */
+    .percent-cell {
+        font-weight: 700;
+        color: #0056b3;
+    }
+    
+    /* Buttons */
+    .btn-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 25px;
+        flex-wrap: wrap;
+    }
+    .btn {
+        padding: 14px 35px;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    .btn-reset {
+        background: #0056b3;
+    }
+    .btn-reset:hover {
+        background: #004494;
+    }
+    .btn-save {
+        background: #198754;
+    }
+    .btn-save:hover {
+        background: #146c43;
+    }
+    .btn-excel {
+        background: #217346;
+    }
+    .btn-excel:hover {
+        background: #1a5c38;
+    }
+    
+    /* Section divider */
+    .section-divider {
+        margin: 40px 0;
+        border-top: 3px solid #dee2e6;
+        padding-top: 30px;
+    }
+    
+    /* Tabs for reports */
+    .report-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 25px;
+        border-bottom: 2px solid #dee2e6;
+        flex-wrap: wrap;
+        padding-bottom: 10px;
+    }
+    .tab-btn {
+        padding: 10px 16px;
+        background: #f8f9fa;
+        border: 2px solid #dee2e6;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: #495057;
+        border-radius: 6px 6px 0 0;
+        transition: all 0.2s ease;
+    }
+    .tab-btn:hover {
+        background: #e9ecef;
+        border-color: #0056b3;
+    }
+    .tab-btn.active {
+        background: #0056b3;
+        color: #ffffff;
+        border-color: #0056b3;
+    }
+    
+    .report-section {
+        display: none;
+    }
+    .report-section.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    /* Month header */
+    .month-header {
+        background: linear-gradient(135deg, #0056b3 0%, #004494 100%);
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+    }
+</style>
+</head>
+<body>
+
+<!-- Full Page Drop Zone -->
+<div class="drop-zone" id="dropZone">
+    <div class="drop-zone-content">
+        <div class="drop-zone-box" id="dropBox">
+            <div class="drop-icon">📁</div>
+            <h1>Account Wise Actual Card Collection Report</h1>
+            <p>Drag & Drop Excel file here</p>
+            <p style="margin-top: 10px; opacity: 0.7;">or click to browse</p>
+            <input type="file" id="excelFile" accept=".xls,.xlsx" />
+        </div>
+    </div>
+</div>
+
+<!-- Result Container -->
+<div class="container" id="resultContainer">
+    <div class="report-header">
+        <h1>Account Wise Actual Card Collection Report</h1>
+        <div class="datetime" id="reportDateTime"></div>
+    </div>
+
+    <!-- Report Tabs -->
+    <div class="report-tabs">
+        <button class="tab-btn active" data-tab="current">Current Report</button>
+        <button class="tab-btn" data-tab="month1">Month 1</button>
+        <button class="tab-btn" data-tab="month2">Month 2</button>
+        <button class="tab-btn" data-tab="month3">Month 3</button>
+        <button class="tab-btn" data-tab="month4">Month 4</button>
+        <button class="tab-btn" data-tab="year2024">2024 Account</button>
+        <button class="tab-btn" data-tab="year2025">2025 Account</button>
+        <button class="tab-btn" data-tab="month2025">2025 Month Wise</button>
+        <button class="tab-btn" data-tab="notcoll2025">2025 Not Collected</button>
+    </div>
+
+    <!-- Current Report Section -->
+    <div class="report-section active" id="current">
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 1 Section -->
+    <div class="report-section" id="month1">
+        <div class="month-header" id="month1Header"></div>
+        <table id="month1Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 2 Section -->
+    <div class="report-section" id="month2">
+        <div class="month-header" id="month2Header"></div>
+        <table id="month2Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 3 Section -->
+    <div class="report-section" id="month3">
+        <div class="month-header" id="month3Header"></div>
+        <table id="month3Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Month 4 Section -->
+    <div class="report-section" id="month4">
+        <div class="month-header" id="month4Header"></div>
+        <table id="month4Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 2024 Account Section -->
+    <div class="report-section" id="year2024">
+        <div class="month-header">2024 Account Report</div>
+        <table id="year2024Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 2025 Account Section -->
+    <div class="report-section" id="year2025">
+        <div class="month-header">2025 Account Report</div>
+        <table id="year2025Table">
+            <thead>
+                <tr>
+                    <th>Plaza Name</th>
+                    <th>AC Qty</th>
+                    <th>Collection Achieve Qty (&gt; 0)</th>
+                    <th>Not Collected Qty</th>
+                    <th>Coll %</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 2025 Month Wise Section -->
+    <div class="report-section" id="month2025">
+        <div class="month-header">2025 Month Wise Report</div>
+        <div id="month2025Container" style="overflow-x: auto;">
+            <table id="month2025Table">
+                <thead id="month2025Head">
+                    <tr>
+                        <th>Plaza Name</th>
+                    </tr>
+                </thead>
+                <tbody id="month2025Body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2025 Not Collected Qty Section -->
+    <div class="report-section" id="notcoll2025">
+        <div class="month-header">2025 Month Wise Not Collected Qty</div>
+        <div id="notcoll2025Container" style="overflow-x: auto;">
+            <table id="notcoll2025Table">
+                <thead id="notcoll2025Head">
+                    <tr>
+                        <th>Plaza Name</th>
+                    </tr>
+                </thead>
+                <tbody id="notcoll2025Body"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="btn-container">
+        <button class="btn btn-save" id="saveBtn">📷 Save as Image</button>
+        <button class="btn btn-excel" id="excelBtn">📊 Download Excel</button>
+        <button class="btn btn-reset" id="resetBtn">Upload Another File</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+const dropZone = document.getElementById("dropZone");
+const dropBox = document.getElementById("dropBox");
+const fileInput = document.getElementById("excelFile");
+const resultContainer = document.getElementById("resultContainer");
+const resetBtn = document.getElementById("resetBtn");
+const saveBtn = document.getElementById("saveBtn");
+const excelBtn = document.getElementById("excelBtn");
+const reportDateTime = document.getElementById("reportDateTime");
+const tabBtns = document.querySelectorAll(".tab-btn");
+let currentData = {};
+
+// Click to browse
+dropBox.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => processFile(e.target.files[0]));
+
+// Tab switching
+tabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        tabBtns.forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".report-section").forEach(s => s.classList.remove("active"));
+        
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.tab).classList.add("active");
+    });
+});
+
+// Drag and drop events
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+});
+
+dropZone.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+});
+
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+});
+
+// Reset button
+resetBtn.addEventListener("click", () => {
+    dropZone.classList.remove("hidden");
+    resultContainer.classList.remove("visible");
+    fileInput.value = "";
+});
+
+// Save as image button
+saveBtn.addEventListener("click", () => {
+    const btnContainer = document.querySelector(".btn-container");
+    btnContainer.style.display = "none";
+    
+    html2canvas(resultContainer, {
+        backgroundColor: "#ffffff",
+        scale: 3,
+        useCORS: true,
+        logging: false
+    }).then(canvas => {
+        btnContainer.style.display = "flex";
+        const link = document.createElement("a");
+        link.download = "Collection_Report_" + new Date().toISOString().slice(0,10) + ".png";
+        link.href = canvas.toDataURL("image/png", 1.0);
+        link.click();
+    });
+});
+
+// Download Excel button
+excelBtn.addEventListener("click", () => {
+    const wb = XLSX.utils.book_new();
+    
+    // Add current report
+    const currentTable = document.getElementById("resultTable");
+    const currentWs = XLSX.utils.table_to_sheet(currentTable);
+    XLSX.utils.book_append_sheet(wb, currentWs, "Current Report");
+    
+    // Add monthly reports
+    for (let i = 1; i <= 4; i++) {
+        const monthTable = document.getElementById(`month${i}Table`);
+        const monthHeader = document.getElementById(`month${i}Header`);
+        
+        if (monthTable && monthHeader.textContent) {
+            const monthWs = XLSX.utils.table_to_sheet(monthTable);
+            const sheetName = monthHeader.textContent || `Month ${i}`;
+            XLSX.utils.book_append_sheet(wb, monthWs, sheetName);
+        }
+    }
+    
+    // Add yearly reports
+    const year2024Table = document.getElementById("year2024Table");
+    const year2024Ws = XLSX.utils.table_to_sheet(year2024Table);
+    XLSX.utils.book_append_sheet(wb, year2024Ws, "2024 Account");
+    
+    const year2025Table = document.getElementById("year2025Table");
+    const year2025Ws = XLSX.utils.table_to_sheet(year2025Table);
+    XLSX.utils.book_append_sheet(wb, year2025Ws, "2025 Account");
+    
+    // Add 2025 Month Wise report
+    const month2025Table = document.getElementById("month2025Table");
+    const month2025Ws = XLSX.utils.table_to_sheet(month2025Table);
+    XLSX.utils.book_append_sheet(wb, month2025Ws, "2025 Month Wise");
+    
+    // Add 2025 Not Collected report
+    const notcoll2025Table = document.getElementById("notcoll2025Table");
+    const notcoll2025Ws = XLSX.utils.table_to_sheet(notcoll2025Table);
+    XLSX.utils.book_append_sheet(wb, notcoll2025Ws, "2025 Not Collected");
+    
+    XLSX.writeFile(wb, "Collection_Report_" + new Date().toISOString().slice(0,10) + ".xlsx");
+});
+
+function formatDateTime() {
+    const now = new Date();
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    };
+    return now.toLocaleDateString('en-US', options);
+}
+
+function getMonthName(dateValue) {
+    let date;
+    
+    if (typeof dateValue === 'number') {
+        date = new Date((dateValue - 25569) * 86400 * 1000);
+    } else if (typeof dateValue === 'string') {
+        // Handle "29-Jul-24" format
+        const dateStr = dateValue.trim();
+        const parts = dateStr.split('-');
+        
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const monthStr = parts[1];
+            let year = parseInt(parts[2]);
+            
+            // Convert 2-digit year to 4-digit (24 -> 2024, 99 -> 1999)
+            if (year < 100) {
+                year = year <= 30 ? 2000 + year : 1900 + year;
+            }
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase());
+            
+            if (monthIndex !== -1) {
+                date = new Date(year, monthIndex, day);
+            } else {
+                date = new Date(dateValue);
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+    } else {
+        return null;
+    }
+    
+    if (isNaN(date.getTime())) return null;
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return monthNames[date.getMonth()];
+}
+
+function processFile(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        const HEADER_ROW_INDEX = 5;
+
+        if (!rows[HEADER_ROW_INDEX] || rows[HEADER_ROW_INDEX].length === 0) {
+            alert("Header row (row 6) not found.");
+            return;
+        }
+
+        const headerRow = rows[HEADER_ROW_INDEX];
+        const headers = [];
+        for (let i = 0; i < headerRow.length; i++) {
+            const cell = headerRow[i];
+            headers.push(cell != null ? String(cell).toLowerCase().trim() : "");
+        }
+
+        const plazaCol = headers.findIndex(h => h && h.includes("plaza"));
+        const collectionCol = 21;
+        const invoiceDateCol = 14; // Column O (0-based index)
+
+        if (plazaCol === -1) {
+            alert("Plaza column not found.\n\nDetected headers:\n" + headers.join(" | "));
+            return;
+        }
+
+        const result = {};
+        const monthlyData = {};
+        const yearlyData = { 2024: {}, 2025: {} };
+        const monthlyData2025 = {};
+
+        for (let i = HEADER_ROW_INDEX + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row) continue;
+
+            const plaza = row[plazaCol];
+            const rawCollection = row[collectionCol];
+            const invoiceDate = invoiceDateCol !== -1 ? row[invoiceDateCol] : null;
+            
+            let collection = 0;
+            if (rawCollection != null && rawCollection !== "") {
+                const cleaned = String(rawCollection).replace(/[,\s]/g, "").trim();
+                collection = parseFloat(cleaned) || 0;
+            }
+
+            if (!plaza || String(plaza).toLowerCase().trim() === "plaza") continue;
+
+            // Current report
+            if (!result[plaza]) {
+                result[plaza] = { plazaQty: 0, collectionQty: 0 };
+            }
+            result[plaza].plazaQty++;
+            if (collection > 0) {
+                result[plaza].collectionQty++;
+            }
+
+            // Monthly report
+            if (invoiceDate) {
+                const monthKey = getMonthKey(invoiceDate);
+                if (monthKey) {
+                    if (!monthlyData[monthKey]) monthlyData[monthKey] = {};
+                    if (!monthlyData[monthKey][plaza]) {
+                        monthlyData[monthKey][plaza] = { plazaQty: 0, collectionQty: 0 };
+                    }
+                    monthlyData[monthKey][plaza].plazaQty++;
+                    if (collection > 0) {
+                        monthlyData[monthKey][plaza].collectionQty++;
+                    }
+                }
+                
+                // Yearly report
+                const year = getYear(invoiceDate);
+                if (year && (year === 2024 || year === 2025)) {
+                    if (!yearlyData[year][plaza]) {
+                        yearlyData[year][plaza] = { plazaQty: 0, collectionQty: 0 };
+                    }
+                    yearlyData[year][plaza].plazaQty++;
+                    if (collection > 0) {
+                        yearlyData[year][plaza].collectionQty++;
+                    }
+                }
+                
+                // 2025 Monthly breakdown
+                if (year === 2025) {
+                    const monthName = getMonthName(invoiceDate);
+                    if (monthName) {
+                        if (!monthlyData2025[monthName]) monthlyData2025[monthName] = {};
+                        if (!monthlyData2025[monthName][plaza]) {
+                            monthlyData2025[monthName][plaza] = { plazaQty: 0, collectionQty: 0 };
+                        }
+                        monthlyData2025[monthName][plaza].plazaQty++;
+                        if (collection > 0) {
+                            monthlyData2025[monthName][plaza].collectionQty++;
+                        }
+                    }
+                }
+            }
+        }
+
+        currentData = { result, monthlyData, yearlyData, monthlyData2025 };
+        
+        // Set date and time
+        reportDateTime.textContent = formatDateTime();
+        
+        renderTable(result);
+        renderSeparateMonthlyReports(monthlyData);
+        renderYearlyReports(yearlyData);
+        render2025MonthWiseReport(monthlyData2025);
+        render2025NotCollectedReport(monthlyData2025);
+        
+        dropZone.classList.add("hidden");
+        resultContainer.classList.add("visible");
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function getMonthKey(dateValue) {
+    let date;
+    
+    if (typeof dateValue === 'number') {
+        // Excel serial date
+        date = new Date((dateValue - 25569) * 86400 * 1000);
+    } else if (typeof dateValue === 'string') {
+        // Handle "29-Jul-24" format
+        const dateStr = dateValue.trim();
+        const parts = dateStr.split('-');
+        
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const monthStr = parts[1];
+            let year = parseInt(parts[2]);
+            
+            // Convert 2-digit year to 4-digit (24 -> 2024, 99 -> 1999)
+            if (year < 100) {
+                year = year <= 30 ? 2000 + year : 1900 + year;
+            }
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase());
+            
+            if (monthIndex !== -1) {
+                date = new Date(year, monthIndex, day);
+            } else {
+                date = new Date(dateValue);
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+    } else {
+        return null;
+    }
+    
+    if (isNaN(date.getTime())) return null;
+    
+    const now = new Date();
+    const fourMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    
+    if (date < fourMonthsAgo) return null;
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    
+    return monthName;
+}
+
+function getYear(dateValue) {
+    let date;
+    
+    if (typeof dateValue === 'number') {
+        // Excel serial date
+        date = new Date((dateValue - 25569) * 86400 * 1000);
+    } else if (typeof dateValue === 'string') {
+        // Handle "29-Jul-24" format
+        const dateStr = dateValue.trim();
+        const parts = dateStr.split('-');
+        
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const monthStr = parts[1];
+            let year = parseInt(parts[2]);
+            
+            // Convert 2-digit year to 4-digit (24 -> 2024, 99 -> 1999)
+            if (year < 100) {
+                year = year <= 30 ? 2000 + year : 1900 + year;
+            }
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase());
+            
+            if (monthIndex !== -1) {
+                date = new Date(year, monthIndex, day);
+            } else {
+                date = new Date(dateValue);
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+    } else {
+        return null;
+    }
+    
+    if (isNaN(date.getTime())) return null;
+    
+    return date.getFullYear();
+}
+function renderTable(data) {
+    const tbody = document.querySelector("#resultTable tbody");
+    tbody.innerHTML = "";
+
+    let totalPlazaQty = 0;
+    let totalCollectionQty = 0;
+
+    Object.entries(data).forEach(([plaza, values]) => {
+        const notCollectedQty = values.plazaQty - values.collectionQty;
+        const collPercent = values.plazaQty > 0 
+            ? ((values.collectionQty / values.plazaQty) * 100).toFixed(2) 
+            : "0.00";
+        
+        totalPlazaQty += values.plazaQty;
+        totalCollectionQty += values.collectionQty;
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${plaza}</td>
+                <td>${values.plazaQty}</td>
+                <td>${values.collectionQty}</td>
+                <td>${notCollectedQty}</td>
+                <td class="percent-cell">${collPercent}%</td>
+            </tr>
+        `;
+    });
+
+    const totalNotCollected = totalPlazaQty - totalCollectionQty;
+    const totalPercent = totalPlazaQty > 0 
+        ? ((totalCollectionQty / totalPlazaQty) * 100).toFixed(2) 
+        : "0.00";
+
+    tbody.innerHTML += `
+        <tr class="total-row">
+            <td>Total</td>
+            <td>${totalPlazaQty}</td>
+            <td>${totalCollectionQty}</td>
+            <td>${totalNotCollected}</td>
+            <td>${totalPercent}%</td>
+        </tr>
+    `;
+}
+
+function renderSeparateMonthlyReports(monthlyData) {
+    const months = Object.keys(monthlyData).sort().reverse();
+    
+    // Render each month separately (up to 4 months)
+    for (let i = 0; i < 4 && i < months.length; i++) {
+        const month = months[i];
+        const tableId = `month${i + 1}Table`;
+        const headerId = `month${i + 1}Header`;
+        const tbody = document.querySelector(`#${tableId} tbody`);
+        const header = document.getElementById(headerId);
+        
+        if (!tbody) continue;
+        
+        const plazas = monthlyData[month];
+        let monthTotalQty = 0;
+        let monthTotalCollection = 0;
+        
+        tbody.innerHTML = "";
+        header.textContent = month;
+        
+        Object.entries(plazas).forEach(([plaza, values]) => {
+            const notCollectedQty = values.plazaQty - values.collectionQty;
+            monthTotalQty += values.plazaQty;
+            monthTotalCollection += values.collectionQty;
+            
+            const collPercent = values.plazaQty > 0 
+                ? ((values.collectionQty / values.plazaQty) * 100).toFixed(2) 
+                : "0.00";
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${plaza}</td>
+                    <td>${values.plazaQty}</td>
+                    <td>${values.collectionQty}</td>
+                    <td>${notCollectedQty}</td>
+                    <td class="percent-cell">${collPercent}%</td>
+                </tr>
+            `;
+        });
+
+        const monthNotCollected = monthTotalQty - monthTotalCollection;
+        const monthPercent = monthTotalQty > 0 
+            ? ((monthTotalCollection / monthTotalQty) * 100).toFixed(2) 
+            : "0.00";
+
+        tbody.innerHTML += `
+            <tr class="total-row">
+                <td>Total</td>
+                <td>${monthTotalQty}</td>
+                <td>${monthTotalCollection}</td>
+                <td>${monthNotCollected}</td>
+                <td>${monthPercent}%</td>
+            </tr>
+        `;
+    }
+}
+
+function renderYearlyReports(yearlyData) {
+    // Render 2024 report
+    renderYearTable(yearlyData[2024], 'year2024Table');
+    
+    // Render 2025 report
+    renderYearTable(yearlyData[2025], 'year2025Table');
+}
+
+function renderYearTable(data, tableId) {
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    if (!tbody) return;
+    
+    tbody.innerHTML = "";
+    
+    let totalQty = 0;
+    let totalCollection = 0;
+    
+    Object.entries(data).forEach(([plaza, values]) => {
+        const notCollectedQty = values.plazaQty - values.collectionQty;
+        totalQty += values.plazaQty;
+        totalCollection += values.collectionQty;
+        
+        const collPercent = values.plazaQty > 0 
+            ? ((values.collectionQty / values.plazaQty) * 100).toFixed(2) 
+            : "0.00";
+        
+        tbody.innerHTML += `
+            <tr>
+                <td>${plaza}</td>
+                <td>${values.plazaQty}</td>
+                <td>${values.collectionQty}</td>
+                <td>${notCollectedQty}</td>
+                <td class="percent-cell">${collPercent}%</td>
+            </tr>
+        `;
+    });
+
+    const totalNotCollected = totalQty - totalCollection;
+    const totalPercent = totalQty > 0 
+        ? ((totalCollection / totalQty) * 100).toFixed(2) 
+        : "0.00";
+
+    tbody.innerHTML += `
+        <tr class="total-row">
+            <td>Total</td>
+            <td>${totalQty}</td>
+            <td>${totalCollection}</td>
+            <td>${totalNotCollected}</td>
+            <td>${totalPercent}%</td>
+        </tr>
+    `;
+}
+
+function render2025MonthWiseReport(monthlyData2025) {
+    const thead = document.querySelector("#month2025Head");
+    const tbody = document.querySelector("#month2025Body");
+    
+    if (!thead || !tbody) return;
+    
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    // Get all unique plazas
+    const allPlazas = new Set();
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        Object.keys(plazas).forEach(plaza => allPlazas.add(plaza));
+    });
+    
+    const plazaList = Array.from(allPlazas).sort();
+    
+    // Build header with months
+    let headerRow = '<tr><th>Plaza Name</th>';
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            headerRow += `<th colspan="4" style="text-align: center; background: #e3f2fd;">${month}</th>`;
+        }
+    });
+    headerRow += '</tr>';
+    
+    // Add sub-headers
+    headerRow += '<tr><th>Plaza Name</th>';
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            headerRow += '<th style="font-size: 11px;">AC Qty</th><th style="font-size: 11px;">Coll Qty</th><th style="font-size: 11px;">Not Coll</th><th style="font-size: 11px;">%</th>';
+        }
+    });
+    headerRow += '</tr>';
+    
+    thead.innerHTML = headerRow;
+    tbody.innerHTML = '';
+    
+    // Build data rows
+    plazaList.forEach(plaza => {
+        let row = `<tr><td style="font-weight: 700;">${plaza}</td>`;
+        
+        months.forEach(month => {
+            const plazas = monthlyData2025[month] || {};
+            const values = plazas[plaza];
+            
+            if (Object.keys(monthlyData2025[month] || {}).length > 0) {
+                if (values) {
+                    const notCollected = values.plazaQty - values.collectionQty;
+                    const percent = values.plazaQty > 0 
+                        ? ((values.collectionQty / values.plazaQty) * 100).toFixed(1)
+                        : "0.0";
+                    
+                    row += `<td style="font-size: 12px;">${values.plazaQty}</td>`;
+                    row += `<td style="font-size: 12px;">${values.collectionQty}</td>`;
+                    row += `<td style="font-size: 12px;">${notCollected}</td>`;
+                    row += `<td style="font-size: 12px; font-weight: 700; color: #0056b3;">${percent}%</td>`;
+                } else {
+                    row += '<td style="font-size: 12px;">-</td><td style="font-size: 12px;">-</td><td style="font-size: 12px;">-</td><td style="font-size: 12px;">-</td>';
+                }
+            }
+        });
+        
+        row += '</tr>';
+        tbody.innerHTML += row;
+    });
+    
+    // Add totals row
+    let totalRow = '<tr style="background: #198754; color: white; font-weight: 700;"><td>Total</td>';
+    
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            let monthTotalQty = 0;
+            let monthTotalCollection = 0;
+            
+            Object.values(plazas).forEach(values => {
+                monthTotalQty += values.plazaQty;
+                monthTotalCollection += values.collectionQty;
+            });
+            
+            const monthNotCollected = monthTotalQty - monthTotalCollection;
+            const monthPercent = monthTotalQty > 0 
+                ? ((monthTotalCollection / monthTotalQty) * 100).toFixed(1)
+                : "0.0";
+            
+            totalRow += `<td style="font-size: 12px;">${monthTotalQty}</td>`;
+            totalRow += `<td style="font-size: 12px;">${monthTotalCollection}</td>`;
+            totalRow += `<td style="font-size: 12px;">${monthNotCollected}</td>`;
+            totalRow += `<td style="font-size: 12px;">${monthPercent}%</td>`;
+        }
+    });
+    
+    totalRow += '</tr>';
+    tbody.innerHTML += totalRow;
+}
+
+function render2025NotCollectedReport(monthlyData2025) {
+    const thead = document.querySelector("#notcoll2025Head");
+    const tbody = document.querySelector("#notcoll2025Body");
+    
+    if (!thead || !tbody) return;
+    
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    // Get all unique plazas
+    const allPlazas = new Set();
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        Object.keys(plazas).forEach(plaza => allPlazas.add(plaza));
+    });
+    
+    const plazaList = Array.from(allPlazas).sort();
+    
+    // Build header with months
+    let headerRow = '<tr><th>Plaza Name</th>';
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            headerRow += `<th style="text-align: center; background: #e3f2fd;">${month}</th>`;
+        }
+    });
+    headerRow += '</tr>';
+    
+    thead.innerHTML = headerRow;
+    tbody.innerHTML = '';
+    
+    // Build data rows - only Not Collected Qty
+    plazaList.forEach(plaza => {
+        let row = `<tr><td style="font-weight: 700;">${plaza}</td>`;
+        
+        months.forEach(month => {
+            const plazas = monthlyData2025[month] || {};
+            const values = plazas[plaza];
+            
+            if (Object.keys(monthlyData2025[month] || {}).length > 0) {
+                if (values) {
+                    const notCollected = values.plazaQty - values.collectionQty;
+                    row += `<td style="font-size: 13px; text-align: center; font-weight: 600;">${notCollected}</td>`;
+                } else {
+                    row += '<td style="font-size: 13px; text-align: center;">-</td>';
+                }
+            }
+        });
+        
+        row += '</tr>';
+        tbody.innerHTML += row;
+    });
+    
+    // Add totals row
+    let totalRow = '<tr style="background: #198754; color: white; font-weight: 700;"><td>Total</td>';
+    
+    months.forEach(month => {
+        const plazas = monthlyData2025[month] || {};
+        if (Object.keys(plazas).length > 0) {
+            let monthTotalNotCollected = 0;
+            
+            Object.values(plazas).forEach(values => {
+                monthTotalNotCollected += (values.plazaQty - values.collectionQty);
+            });
+            
+            totalRow += `<td style="font-size: 13px; text-align: center;">${monthTotalNotCollected}</td>`;
+        }
+    });
+    
+    totalRow += '</tr>';
+    tbody.innerHTML += totalRow;
+}
+</script>
+
+</body>
+</html>

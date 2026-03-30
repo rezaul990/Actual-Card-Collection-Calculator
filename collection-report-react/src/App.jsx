@@ -6,7 +6,7 @@ import './App.css'
 
 function App() {
   const { reportData, showReport, error, handleFileUpload, handleReset } = useReportData()
-  const { tabs, activeTab, setActiveTab } = useReportTabs(reportData?.monthlyData || {})
+  const { tabs, accountListTabs, activeTab, setActiveTab } = useReportTabs(reportData?.monthlyData || {})
 
   return (
     <div className="app">
@@ -20,6 +20,7 @@ function App() {
         <ReportView
           data={reportData}
           tabs={tabs}
+          accountListTabs={accountListTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onReset={handleReset}

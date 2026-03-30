@@ -27,6 +27,9 @@ export function parseExcelData(rows) {
   const monthlyData2024 = {}
   const accountDetails2025 = [] // Account-level details for 2025
   const accountDetails2024 = [] // Account-level details for 2024
+  const allAccountDetails = [] // All account details for Total No Collection Account List
+  const dailyCollectionComparison2025 = [] // All 2025 accounts for daily collection comparison
+  const dailyCollectionComparison2024 = [] // All 2024 accounts for daily collection comparison
 
   for (let i = HEADER_ROW_INDEX + 1; i < rows.length; i++) {
     const row = rows[i]
@@ -43,6 +46,26 @@ export function parseExcelData(rows) {
     }
 
     if (!plaza || String(plaza).toLowerCase().trim() === 'plaza') continue
+
+    // Capture ALL account details for Total No Collection Account List
+    const accountDetail = {
+      division: row[2] || '',         // Column C - Division
+      area: row[3] || '',              // Column D - Area
+      plaza: plaza,                    // Column E - Plaza (auto-detected)
+      accountNo: row[6] || '',         // Column G - Account No.
+      customerName: row[7] || '',      // Column H - Customer Name
+      productCategory: row[9] || '',   // Column J - Product Category
+      assignPersonId: row[11] || '',   // Column L - Assign Person ID
+      invoiceNo: row[13] || '',        // Column N - Invoice No.
+      invoiceDate: invoiceDate,        // Column O - Invoice Date
+      maturedDate: row[15] || '',      // Column P - Matured Date
+      perMonthSchedule: row[16] || '', // Column Q - Per Month Ins. Schedule Amt.
+      amount: row[16] || '',           // Column Q - Per Month Ins. Schedule Amt.
+      previousMonthOverdue: '',        // Not in structure
+      collectionTarget: row[18] || '', // Column S - Collection Target
+      collectionAchieve: collection,   // Column U - Collection Achieve
+    }
+    allAccountDetails.push(accountDetail)
 
     // Current report
     if (!result[plaza]) {
@@ -78,31 +101,20 @@ export function parseExcelData(rows) {
           yearlyData[year][plaza].collectionQty++
         }
 
-        // Capture account-level details for not collected accounts
+        // Capture account-level details for not collected accounts (year-specific)
         if (collection === 0) {
-          const accountDetail = {
-            division: row[0] || '',
-            area: row[1] || '',
-            plaza: plaza,
-            accountNo: row[3] || '',
-            customerName: row[4] || '',
-            productCategory: row[5] || '',
-            assignPersonId: row[6] || '',
-            invoiceNo: row[7] || '',
-            invoiceDate: invoiceDate,
-            maturedDate: row[9] || '',
-            perMonthSchedule: row[10] || '',
-            amount: row[11] || '',
-            previousMonthOverdue: row[12] || '',
-            collectionTarget: row[13] || '',
-            collectionAchieve: collection,
-          }
-
           if (year === 2025) {
             accountDetails2025.push(accountDetail)
           } else if (year === 2024) {
             accountDetails2024.push(accountDetail)
           }
+        }
+
+        // Capture ALL accounts for daily collection comparison (both collected and not collected)
+        if (year === 2025) {
+          dailyCollectionComparison2025.push(accountDetail)
+        } else if (year === 2024) {
+          dailyCollectionComparison2024.push(accountDetail)
         }
       }
 
@@ -138,7 +150,7 @@ export function parseExcelData(rows) {
     }
   }
 
-  return { result, monthlyData, yearlyData, monthlyData2025, monthlyData2024, accountDetails2025, accountDetails2024 }
+  return { result, monthlyData, yearlyData, monthlyData2025, monthlyData2024, accountDetails2025, accountDetails2024, allAccountDetails, dailyCollectionComparison2025, dailyCollectionComparison2024 }
 }
 
 function getMonthName(dateValue) {

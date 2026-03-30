@@ -5,20 +5,6 @@
   border-bottom: 3px solid #e2e8f0;
   flex-wrap: wrap;
   padding-bottom: 18px;
-  overflow-x: auto;
-}
-
-.report-tabs::-webkit-scrollbar {
-  height: 6px;
-}
-
-.report-tabs::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.report-tabs::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
 }
 
 .tab-btn {
@@ -49,4 +35,25 @@
   border-color: #2563eb;
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
   font-weight: 800;
+}
+
+/* Account List Section */
+.account-list-section {
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.account-tabs {
+  margin-bottom: 0;
 }

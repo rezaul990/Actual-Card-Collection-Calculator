@@ -7,10 +7,15 @@ import MonthlyTable from '../Tables/MonthlyTable'
 import NotCollectedTable from '../Tables/NotCollectedTable'
 import NotCollected2024Table from '../Tables/NotCollected2024Table'
 import AccountListTable from '../Tables/AccountListTable'
+import DailyCollectionComparisonTable from '../Tables/DailyCollectionComparisonTable'
+import TargetAchieveTable from '../Tables/TargetAchieveTable'
+import NoCollectionAccountListTable from '../Tables/NoCollectionAccountListTable'
+import Month4NoCollectionAccountListTable from '../Tables/Month4NoCollectionAccountListTable'
+import YearNoCollectionAccountListTable from '../Tables/YearNoCollectionAccountListTable'
 import ActionButtons from '../Buttons/ActionButtons'
 import { getTableData } from '../../services/reportService'
 
-function ReportView({ data, tabs, activeTab, onTabChange, onReset }) {
+function ReportView({ data, tabs, accountListTabs, activeTab, onTabChange, onReset }) {
   const containerRef = useRef(null)
   const tableData = getTableData(data, activeTab)
 
@@ -35,6 +40,26 @@ function ReportView({ data, tabs, activeTab, onTabChange, onReset }) {
       return <AccountListTable data={tableData.data} title={tableData.title} />
     }
 
+    if (tableData.isDailyComparison) {
+      return <DailyCollectionComparisonTable data={tableData.data} title={tableData.title} />
+    }
+
+    if (tableData.isTargetAchieve) {
+      return <TargetAchieveTable data={tableData.data} title={tableData.title} />
+    }
+
+    if (tableData.isNoCollectionList) {
+      return <NoCollectionAccountListTable data={tableData.data} title={tableData.title} />
+    }
+
+    if (tableData.isMonth4NoCollectionList) {
+      return <Month4NoCollectionAccountListTable data={tableData.data} title={tableData.title} />
+    }
+
+    if (tableData.isYearNoCollectionList) {
+      return <YearNoCollectionAccountListTable data={tableData.data} title={tableData.title} />
+    }
+
     return <StandardTable data={tableData.data} title={tableData.title} />
   }
 
@@ -42,7 +67,7 @@ function ReportView({ data, tabs, activeTab, onTabChange, onReset }) {
     <Container>
       <div ref={containerRef}>
         <Header />
-        <Tabs tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />
+        <Tabs tabs={tabs} accountListTabs={accountListTabs} activeTab={activeTab} onTabChange={onTabChange} />
         {tableData.title && (
           <div className="month-header">{tableData.title}</div>
         )}

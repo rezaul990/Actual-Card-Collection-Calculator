@@ -7,7 +7,7 @@ export function getTableData(data, activeTab) {
 
   switch (activeTab) {
     case 'current':
-      return { data: data.result, title: 'Current Report' }
+      return { data: data.result, title: 'Top Sheet' }
 
     case 'month1':
     case 'month2':
@@ -62,6 +62,82 @@ export function getTableData(data, activeTab) {
         data: data.yearlyData[2024],
         title: '2024 Account List - Not Collected',
         isAccountList: true,
+      }
+
+    case 'dailycoll2025':
+      return {
+        data: { accountDetails: data.dailyCollectionComparison2025 },
+        title: '2025 Daily Collection Comparison',
+        isDailyComparison: true,
+      }
+
+    case 'dailycoll2024':
+      return {
+        data: { accountDetails: data.dailyCollectionComparison2024 },
+        title: '2024 Daily Collection Comparison',
+        isDailyComparison: true,
+      }
+
+    case 'targetachieve':
+      // Combine both 2024 and 2025 data
+      const allAccounts = [
+        ...(data.dailyCollectionComparison2025 || []),
+        ...(data.dailyCollectionComparison2024 || [])
+      ]
+      return {
+        data: { accountDetails: allAccounts },
+        title: 'Target vs Achieve Analysis (All Accounts)',
+        isTargetAchieve: true,
+      }
+
+    case 'totalnocollection':
+      return {
+        data: { accountDetails: data.allAccountDetails || [] },
+        title: 'Total No Collection Account List',
+        isNoCollectionList: true,
+      }
+
+    case 'month4nocollection':
+      // Get the fourth month data (Month 4)
+      const month4Months = Object.keys(data.monthlyData || {}).sort().reverse()
+      const month4Key = month4Months[3] // Fourth month (index 3)
+      return {
+        data: { 
+          accountDetails: data.allAccountDetails || [],
+          monthKey: month4Key 
+        },
+        title: `Month 4 No Collection Account List${month4Key ? ' - ' + month4Key : ''}`,
+        isMonth4NoCollectionList: true,
+      }
+
+    case 'year2024nocollection':
+      return {
+        data: { 
+          accountDetails: data.allAccountDetails || [],
+          year: 2024
+        },
+        title: '2024 No Collection Account List',
+        isYearNoCollectionList: true,
+      }
+
+    case 'year2025nocollection':
+      return {
+        data: { 
+          accountDetails: data.allAccountDetails || [],
+          year: 2025
+        },
+        title: '2025 No Collection Account List',
+        isYearNoCollectionList: true,
+      }
+
+    case 'year2026nocollection':
+      return {
+        data: { 
+          accountDetails: data.allAccountDetails || [],
+          year: 2026
+        },
+        title: '2026 No Collection Account List',
+        isYearNoCollectionList: true,
       }
 
     default:

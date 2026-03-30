@@ -85,6 +85,46 @@ export function exportAsExcel(data) {
     addDailyCollectionComparisonSheet(wb, data.dailyCollectionComparison2024, '2024 Daily Collection')
   }
 
+  // Target vs Achieve (All Accounts - Combined 2024 & 2025)
+  const allAccounts = [
+    ...(data.dailyCollectionComparison2025 || []),
+    ...(data.dailyCollectionComparison2024 || [])
+  ]
+  if (allAccounts.length > 0) {
+    addTargetAchieveSheet(wb, allAccounts, 'Target vs Achieve')
+  }
+
+  // Total No Collection Account List
+  if (data.allAccountDetails && data.allAccountDetails.length > 0) {
+    addTotalNoCollectionSheet(wb, data.allAccountDetails, 'Total No Collection List')
+  }
+
+  // Month 4 No Collection Account List
+  if (data.allAccountDetails && data.allAccountDetails.length > 0 && data.monthlyData) {
+    const months = Object.keys(data.monthlyData).sort().reverse()
+    const month4Key = months[3]
+    if (month4Key) {
+      // Use the actual month name for the sheet name (e.g., "February 2026 No Collection")
+      const sheetName = `${month4Key} No Collection`
+      addMonth4NoCollectionSheet(wb, data.allAccountDetails, month4Key, sheetName)
+    }
+  }
+
+  // 2024 No Collection Account List
+  if (data.allAccountDetails && data.allAccountDetails.length > 0) {
+    addYearNoCollectionSheet(wb, data.allAccountDetails, 2024, '2024 No Collection List')
+  }
+
+  // 2025 No Collection Account List
+  if (data.allAccountDetails && data.allAccountDetails.length > 0) {
+    addYearNoCollectionSheet(wb, data.allAccountDetails, 2025, '2025 No Collection List')
+  }
+
+  // 2026 No Collection Account List
+  if (data.allAccountDetails && data.allAccountDetails.length > 0) {
+    addYearNoCollectionSheet(wb, data.allAccountDetails, 2026, '2026 No Collection List')
+  }
+
   XLSX.writeFile(wb, `Collection_Report_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
@@ -98,7 +138,7 @@ function addCurrentReportSheet(wb, data) {
   }))
 
   const ws = XLSX.utils.json_to_sheet(wsData)
-  XLSX.utils.book_append_sheet(wb, ws, 'Current Report')
+  XLSX.utils.book_append_sheet(wb, ws, 'Top Sheet')
 }
 
 function addMonthlyReportSheets(wb, monthlyData) {
@@ -691,6 +731,495 @@ function addDailyCollectionComparisonSheet(wb, accountDetails, sheetName) {
     { wch: 18 }, // Collection Achieve
     { wch: 15 }, // Not Collected
     { wch: 12 }, // Coll %
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+}
+
+function addTargetAchieveSheet(wb, accountDetails, sheetName) {
+  if (!accountDetails || accountDetails.length === 0) {
+    return
+  }
+
+  // Plaza wise summary
+  const plazaGroups = {}
+  accountDetails.forEach(account => {
+    const plaza = account.plaza || 'Unknown'
+    if (!plazaGroups[plaza]) {
+      plazaGroups[plaza] = {
+        targetQty: 0,
+        achieveQty: 0,
+        targetAmount: 0,
+        achieveAmount: 0,
+      }
+    }
+    
+    const target = parseFloat(account.collectionTarget) || 0
+    const achieve = parseFloat(account.collectionAchieve) || 0
+    
+    plazaGroups[plaza].targetQty += 1
+    plazaGroups[plaza].achieveQty += achieve > 0 ? 1 : 0
+    plazaGroups[plaza].targetAmount += target
+    plazaGroups[plaza].achieveAmount += achieve
+  })
+
+  const wsData = []
+
+  // Plaza wise data
+  wsData.push({
+    'Type': 'PLAZA WISE SUMMARY',
+    'Name': '',
+    'Target Qty': '',
+    'Achieve Qty': '',
+    'Qty %': '',
+    'Target Amount': '',
+    'Achieve Amount': '',
+    'Amount %': '',
+  })
+
+  let totalTargetQty = 0
+  let totalAchieveQty = 0
+  let totalTargetAmount = 0
+  let totalAchieveAmount = 0
+
+  Object.entries(plazaGroups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([plaza, values]) => {
+      totalTargetQty += values.targetQty
+      totalAchieveQty += values.achieveQty
+      totalTargetAmount += values.targetAmount
+      totalAchieveAmount += values.achieveAmount
+
+      const qtyPercent = values.targetQty > 0 ? ((values.achieveQty / values.targetQty) * 100).toFixed(2) : '0.00'
+      const amountPercent = values.targetAmount > 0 ? ((values.achieveAmount / values.targetAmount) * 100).toFixed(2) : '0.00'
+
+      wsData.push({
+        'Type': 'Plaza',
+        'Name': plaza,
+        'Target Qty': values.targetQty,
+        'Achieve Qty': values.achieveQty,
+        'Qty %': qtyPercent + '%',
+        'Target Amount': values.targetAmount.toFixed(2),
+        'Achieve Amount': values.achieveAmount.toFixed(2),
+        'Amount %': amountPercent + '%',
+      })
+    })
+
+  const totalQtyPercent = totalTargetQty > 0 ? ((totalAchieveQty / totalTargetQty) * 100).toFixed(2) : '0.00'
+  const totalAmountPercent = totalTargetAmount > 0 ? ((totalAchieveAmount / totalTargetAmount) * 100).toFixed(2) : '0.00'
+
+  wsData.push({
+    'Type': 'Plaza Total',
+    'Name': '',
+    'Target Qty': totalTargetQty,
+    'Achieve Qty': totalAchieveQty,
+    'Qty %': totalQtyPercent + '%',
+    'Target Amount': totalTargetAmount.toFixed(2),
+    'Achieve Amount': totalAchieveAmount.toFixed(2),
+    'Amount %': totalAmountPercent + '%',
+  })
+
+  // Blank row
+  wsData.push({})
+
+  // Person wise summary
+  const personGroups = {}
+  accountDetails.forEach(account => {
+    const person = account.assignPersonId || 'Unknown'
+    if (!personGroups[person]) {
+      personGroups[person] = {
+        targetQty: 0,
+        achieveQty: 0,
+        targetAmount: 0,
+        achieveAmount: 0,
+      }
+    }
+    
+    const target = parseFloat(account.collectionTarget) || 0
+    const achieve = parseFloat(account.collectionAchieve) || 0
+    
+    personGroups[person].targetQty += 1
+    personGroups[person].achieveQty += achieve > 0 ? 1 : 0
+    personGroups[person].targetAmount += target
+    personGroups[person].achieveAmount += achieve
+  })
+
+  wsData.push({
+    'Type': 'PERSON WISE SUMMARY',
+    'Name': '',
+    'Target Qty': '',
+    'Achieve Qty': '',
+    'Qty %': '',
+    'Target Amount': '',
+    'Achieve Amount': '',
+    'Amount %': '',
+  })
+
+  let personTotalTargetQty = 0
+  let personTotalAchieveQty = 0
+  let personTotalTargetAmount = 0
+  let personTotalAchieveAmount = 0
+
+  Object.entries(personGroups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([person, values]) => {
+      personTotalTargetQty += values.targetQty
+      personTotalAchieveQty += values.achieveQty
+      personTotalTargetAmount += values.targetAmount
+      personTotalAchieveAmount += values.achieveAmount
+
+      const qtyPercent = values.targetQty > 0 ? ((values.achieveQty / values.targetQty) * 100).toFixed(2) : '0.00'
+      const amountPercent = values.targetAmount > 0 ? ((values.achieveAmount / values.targetAmount) * 100).toFixed(2) : '0.00'
+
+      wsData.push({
+        'Type': 'Person',
+        'Name': person,
+        'Target Qty': values.targetQty,
+        'Achieve Qty': values.achieveQty,
+        'Qty %': qtyPercent + '%',
+        'Target Amount': values.targetAmount.toFixed(2),
+        'Achieve Amount': values.achieveAmount.toFixed(2),
+        'Amount %': amountPercent + '%',
+      })
+    })
+
+  const personTotalQtyPercent = personTotalTargetQty > 0 ? ((personTotalAchieveQty / personTotalTargetQty) * 100).toFixed(2) : '0.00'
+  const personTotalAmountPercent = personTotalTargetAmount > 0 ? ((personTotalAchieveAmount / personTotalTargetAmount) * 100).toFixed(2) : '0.00'
+
+  wsData.push({
+    'Type': 'Person Total',
+    'Name': '',
+    'Target Qty': personTotalTargetQty,
+    'Achieve Qty': personTotalAchieveQty,
+    'Qty %': personTotalQtyPercent + '%',
+    'Target Amount': personTotalTargetAmount.toFixed(2),
+    'Achieve Amount': personTotalAchieveAmount.toFixed(2),
+    'Amount %': personTotalAmountPercent + '%',
+  })
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 20 }, // Type
+    { wch: 25 }, // Name
+    { wch: 12 }, // Target Qty
+    { wch: 12 }, // Achieve Qty
+    { wch: 10 }, // Qty %
+    { wch: 15 }, // Target Amount
+    { wch: 15 }, // Achieve Amount
+    { wch: 10 }, // Amount %
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+}
+
+function addTotalNoCollectionSheet(wb, accountDetails, sheetName) {
+  if (!accountDetails || accountDetails.length === 0) {
+    return
+  }
+
+  // Filter only accounts with no collection (collectionAchieve = 0)
+  const noCollectionAccounts = accountDetails.filter(account => {
+    const achieve = parseFloat(account.collectionAchieve) || 0
+    return achieve === 0
+  })
+
+  if (noCollectionAccounts.length === 0) {
+    return
+  }
+
+  // Sort by plaza, then by account number
+  const sortedAccounts = noCollectionAccounts.sort((a, b) => {
+    if (a.plaza !== b.plaza) {
+      return a.plaza.localeCompare(b.plaza)
+    }
+    return (a.accountNo || '').localeCompare(b.accountNo || '')
+  })
+
+  const wsData = sortedAccounts.map((account, index) => ({
+    'S/N': index + 1,
+    'Plaza': account.plaza || '-',
+    'Account Number': account.accountNo || '-',
+    'Customer Name': account.customerName || '-',
+    'Assign Person ID': account.assignPersonId || '-',
+    'Invoice Number': account.invoiceNo || '-',
+    'Collection Target': account.collectionTarget ? parseFloat(account.collectionTarget).toFixed(2) : '0.00',
+  }))
+
+  // Add totals row
+  const totalTarget = sortedAccounts.reduce((sum, account) => {
+    return sum + (parseFloat(account.collectionTarget) || 0)
+  }, 0)
+
+  wsData.push({
+    'S/N': '',
+    'Plaza': '',
+    'Account Number': '',
+    'Customer Name': '',
+    'Assign Person ID': '',
+    'Invoice Number': 'Total Accounts:',
+    'Collection Target': noCollectionAccounts.length,
+  })
+
+  wsData.push({
+    'S/N': '',
+    'Plaza': '',
+    'Account Number': '',
+    'Customer Name': '',
+    'Assign Person ID': '',
+    'Invoice Number': 'Total Target Amount:',
+    'Collection Target': totalTarget.toFixed(2),
+  })
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 8 },  // S/N
+    { wch: 25 }, // Plaza
+    { wch: 18 }, // Account Number
+    { wch: 25 }, // Customer Name
+    { wch: 18 }, // Assign Person ID
+    { wch: 20 }, // Invoice Number
+    { wch: 18 }, // Collection Target
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+}
+
+function addMonth4NoCollectionSheet(wb, accountDetails, monthKey, sheetName) {
+  if (!accountDetails || accountDetails.length === 0 || !monthKey) {
+    return
+  }
+
+  // Helper function to get month key from date
+  function getMonthKeyFromDate(dateValue) {
+    let date
+
+    if (typeof dateValue === 'number') {
+      date = new Date((dateValue - 25569) * 86400 * 1000)
+    } else if (typeof dateValue === 'string') {
+      const dateStr = dateValue.trim()
+      const parts = dateStr.split('-')
+
+      if (parts.length === 3) {
+        const day = parseInt(parts[0])
+        const monthStr = parts[1]
+        let year = parseInt(parts[2])
+
+        if (year < 100) {
+          year = year <= 30 ? 2000 + year : 1900 + year
+        }
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase())
+
+        if (monthIndex !== -1) {
+          date = new Date(year, monthIndex, day)
+        } else {
+          date = new Date(dateValue)
+        }
+      } else {
+        date = new Date(dateValue)
+      }
+    } else {
+      return null
+    }
+
+    if (isNaN(date.getTime())) return null
+
+    const monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+    return monthName
+  }
+
+  // Filter accounts for Month 4 with no collection
+  const month4NoCollectionAccounts = accountDetails.filter(account => {
+    const achieve = parseFloat(account.collectionAchieve) || 0
+    
+    if (!account.invoiceDate) return false
+    
+    const accountMonthKey = getMonthKeyFromDate(account.invoiceDate)
+    
+    return achieve === 0 && accountMonthKey === monthKey
+  })
+
+  if (month4NoCollectionAccounts.length === 0) {
+    return
+  }
+
+  // Sort by plaza, then by account number
+  const sortedAccounts = month4NoCollectionAccounts.sort((a, b) => {
+    if (a.plaza !== b.plaza) {
+      return a.plaza.localeCompare(b.plaza)
+    }
+    return (a.accountNo || '').localeCompare(b.accountNo || '')
+  })
+
+  const wsData = sortedAccounts.map((account, index) => ({
+    'S/N': index + 1,
+    'Plaza': account.plaza || '-',
+    'Account Number': account.accountNo || '-',
+    'Customer Name': account.customerName || '-',
+    'Assign Person ID': account.assignPersonId || '-',
+    'Invoice Number': account.invoiceNo || '-',
+    'Collection Target': account.collectionTarget ? parseFloat(account.collectionTarget).toFixed(2) : '0.00',
+  }))
+
+  // Add totals row
+  const totalTarget = sortedAccounts.reduce((sum, account) => {
+    return sum + (parseFloat(account.collectionTarget) || 0)
+  }, 0)
+
+  wsData.push({
+    'S/N': '',
+    'Plaza': '',
+    'Account Number': '',
+    'Customer Name': '',
+    'Assign Person ID': '',
+    'Invoice Number': 'Total Accounts:',
+    'Collection Target': month4NoCollectionAccounts.length,
+  })
+
+  wsData.push({
+    'S/N': '',
+    'Plaza': '',
+    'Account Number': '',
+    'Customer Name': '',
+    'Assign Person ID': '',
+    'Invoice Number': 'Total Target Amount:',
+    'Collection Target': totalTarget.toFixed(2),
+  })
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 8 },  // S/N
+    { wch: 25 }, // Plaza
+    { wch: 18 }, // Account Number
+    { wch: 25 }, // Customer Name
+    { wch: 18 }, // Assign Person ID
+    { wch: 20 }, // Invoice Number
+    { wch: 18 }, // Collection Target
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+}
+
+function addYearNoCollectionSheet(wb, accountDetails, year, sheetName) {
+  if (!accountDetails || accountDetails.length === 0 || !year) {
+    return
+  }
+
+  // Helper function to get year from date
+  function getYearFromDate(dateValue) {
+    let date
+
+    if (typeof dateValue === 'number') {
+      date = new Date((dateValue - 25569) * 86400 * 1000)
+    } else if (typeof dateValue === 'string') {
+      const dateStr = dateValue.trim()
+      const parts = dateStr.split('-')
+
+      if (parts.length === 3) {
+        const day = parseInt(parts[0])
+        const monthStr = parts[1]
+        let yearVal = parseInt(parts[2])
+
+        if (yearVal < 100) {
+          yearVal = yearVal <= 30 ? 2000 + yearVal : 1900 + yearVal
+        }
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const monthIndex = months.findIndex(m => m.toLowerCase() === monthStr.toLowerCase())
+
+        if (monthIndex !== -1) {
+          date = new Date(yearVal, monthIndex, day)
+        } else {
+          date = new Date(dateValue)
+        }
+      } else {
+        date = new Date(dateValue)
+      }
+    } else {
+      return null
+    }
+
+    if (isNaN(date.getTime())) return null
+
+    return date.getFullYear()
+  }
+
+  // Filter accounts for the specified year with no collection
+  const yearNoCollectionAccounts = accountDetails.filter(account => {
+    const achieve = parseFloat(account.collectionAchieve) || 0
+    
+    if (!account.invoiceDate) return false
+    
+    const accountYear = getYearFromDate(account.invoiceDate)
+    
+    return achieve === 0 && accountYear === year
+  })
+
+  if (yearNoCollectionAccounts.length === 0) {
+    return
+  }
+
+  // Sort by plaza, then by account number
+  const sortedAccounts = yearNoCollectionAccounts.sort((a, b) => {
+    if (a.plaza !== b.plaza) {
+      return a.plaza.localeCompare(b.plaza)
+    }
+    return (a.accountNo || '').localeCompare(b.accountNo || '')
+  })
+
+  const wsData = sortedAccounts.map((account, index) => ({
+    'S/N': index + 1,
+    'Plaza': account.plaza || '-',
+    'Account Number': account.accountNo || '-',
+    'Customer Name': account.customerName || '-',
+    'Assign Person ID': account.assignPersonId || '-',
+    'Invoice Number': account.invoiceNo || '-',
+    'Collection Target': account.collectionTarget ? parseFloat(account.collectionTarget).toFixed(2) : '0.00',
+  }))
+
+  // Add totals row
+  const totalTarget = sortedAccounts.reduce((sum, account) => {
+    return sum + (parseFloat(account.collectionTarget) || 0)
+  }, 0)
+
+  wsData.push({
+    'S/N': '',
+    'Plaza': '',
+    'Account Number': '',
+    'Customer Name': '',
+    'Assign Person ID': '',
+    'Invoice Number': 'Total Accounts:',
+    'Collection Target': yearNoCollectionAccounts.length,
+  })
+
+  wsData.push({
+    'S/N': '',
+    'Plaza': '',
+    'Account Number': '',
+    'Customer Name': '',
+    'Assign Person ID': '',
+    'Invoice Number': 'Total Target Amount:',
+    'Collection Target': totalTarget.toFixed(2),
+  })
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 8 },  // S/N
+    { wch: 25 }, // Plaza
+    { wch: 18 }, // Account Number
+    { wch: 25 }, // Customer Name
+    { wch: 18 }, // Assign Person ID
+    { wch: 20 }, // Invoice Number
+    { wch: 18 }, // Collection Target
   ]
 
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
