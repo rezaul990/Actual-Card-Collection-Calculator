@@ -12,10 +12,11 @@ import TargetAchieveTable from '../Tables/TargetAchieveTable'
 import NoCollectionAccountListTable from '../Tables/NoCollectionAccountListTable'
 import Month4NoCollectionAccountListTable from '../Tables/Month4NoCollectionAccountListTable'
 import YearNoCollectionAccountListTable from '../Tables/YearNoCollectionAccountListTable'
+import PersonIdTopSheetTable from '../Tables/PersonIdTopSheetTable'
 import ActionButtons from '../Buttons/ActionButtons'
 import { getTableData } from '../../services/reportService'
 
-function ReportView({ data, tabs, accountListTabs, activeTab, onTabChange, onReset }) {
+function ReportView({ data, tabs, accountListTabs, personIdTabs, activeTab, onTabChange, onReset }) {
   const containerRef = useRef(null)
   const tableData = getTableData(data, activeTab)
 
@@ -60,6 +61,10 @@ function ReportView({ data, tabs, accountListTabs, activeTab, onTabChange, onRes
       return <YearNoCollectionAccountListTable data={tableData.data} title={tableData.title} />
     }
 
+    if (tableData.isPersonIdTopSheet) {
+      return <PersonIdTopSheetTable data={tableData.data} title={tableData.title} />
+    }
+
     return <StandardTable data={tableData.data} title={tableData.title} />
   }
 
@@ -67,7 +72,7 @@ function ReportView({ data, tabs, accountListTabs, activeTab, onTabChange, onRes
     <Container>
       <div ref={containerRef}>
         <Header />
-        <Tabs tabs={tabs} accountListTabs={accountListTabs} activeTab={activeTab} onTabChange={onTabChange} />
+        <Tabs tabs={tabs} accountListTabs={accountListTabs} personIdTabs={personIdTabs} activeTab={activeTab} onTabChange={onTabChange} />
         {tableData.title && (
           <div className="month-header">{tableData.title}</div>
         )}

@@ -140,6 +140,13 @@ export function getTableData(data, activeTab) {
         isYearNoCollectionList: true,
       }
 
+    case 'personidtopsheet':
+      return {
+        data: { accountDetails: data.allAccountDetails || [] },
+        title: 'Assign Person ID - Top Sheet',
+        isPersonIdTopSheet: true,
+      }
+
     default:
       return { data: data.result, title: 'Current Report' }
   }

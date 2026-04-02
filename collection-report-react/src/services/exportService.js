@@ -125,6 +125,11 @@ export function exportAsExcel(data) {
     addYearNoCollectionSheet(wb, data.allAccountDetails, 2026, '2026 No Collection List')
   }
 
+  // Assign Person ID Top Sheet
+  if (data.allAccountDetails && data.allAccountDetails.length > 0) {
+    addPersonIdTopSheet(wb, data.allAccountDetails, 'Person ID Top Sheet')
+  }
+
   XLSX.writeFile(wb, `Collection_Report_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
@@ -1220,6 +1225,186 @@ function addYearNoCollectionSheet(wb, accountDetails, year, sheetName) {
     { wch: 18 }, // Assign Person ID
     { wch: 20 }, // Invoice Number
     { wch: 18 }, // Collection Target
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+}
+
+function addPersonIdTopSheet(wb, accountDetails, sheetName) {
+  if (!accountDetails || accountDetails.length === 0) {
+    return
+  }
+
+  // Group by Plaza and Assign Person ID
+  const personGroups = {}
+  accountDetails.forEach(account => {
+    const plaza = account.plaza || 'Unknown'
+    const personId = account.assignPersonId || 'Unknown'
+    const key = `${plaza}|||${personId}` // Use delimiter to separate plaza and personId
+    
+    if (!personGroups[key]) {
+      personGroups[key] = {
+        plaza,
+        personId,
+        totalQty: 0,
+        collectedQty: 0,
+        targetAmount: 0,
+        achieveAmount: 0,
+      }
+    }
+    
+    personGroups[key].totalQty++
+    
+    // Clean and parse Collection Target (remove spaces and commas)
+    let target = 0
+    if (account.collectionTarget != null && account.collectionTarget !== '') {
+      const cleanedTarget = String(account.collectionTarget).replace(/[,\s]/g, '').trim()
+      target = parseFloat(cleanedTarget) || 0
+    }
+    
+    // Clean and parse Collection Achieve (remove spaces and commas)
+    let achieve = 0
+    if (account.collectionAchieve != null && account.collectionAchieve !== '') {
+      const cleanedAchieve = String(account.collectionAchieve).replace(/[,\s]/g, '').trim()
+      achieve = parseFloat(cleanedAchieve) || 0
+    }
+    
+    personGroups[key].targetAmount += target
+    personGroups[key].achieveAmount += achieve
+    
+    if (achieve > 0) {
+      personGroups[key].collectedQty++
+    }
+  })
+
+  // Convert to array and sort by plaza, then by person ID
+  const sortedPersons = Object.values(personGroups)
+    .map(values => ({
+      plaza: values.plaza,
+      personId: values.personId,
+      totalQty: values.totalQty,
+      collectedQty: values.collectedQty,
+      notCollectedQty: values.totalQty - values.collectedQty,
+      percentage: ((values.collectedQty / values.totalQty) * 100).toFixed(2),
+      targetAmount: values.targetAmount,
+      achieveAmount: values.achieveAmount,
+      amountPercentage: values.targetAmount > 0 
+        ? ((values.achieveAmount / values.targetAmount) * 100).toFixed(2)
+        : '0.00',
+    }))
+    .sort((a, b) => {
+      if (a.plaza !== b.plaza) {
+        return a.plaza.localeCompare(b.plaza)
+      }
+      return a.personId.localeCompare(b.personId)
+    })
+
+  // Group by plaza for subtotals
+  const plazaGroups = {}
+  sortedPersons.forEach(person => {
+    if (!plazaGroups[person.plaza]) {
+      plazaGroups[person.plaza] = []
+    }
+    plazaGroups[person.plaza].push(person)
+  })
+
+  // Build Excel data with subtotals
+  const wsData = []
+  Object.entries(plazaGroups).forEach(([plaza, persons]) => {
+    // Add person rows
+    persons.forEach(person => {
+      wsData.push({
+        'Plaza Name': person.plaza,
+        'Assign Person ID': person.personId,
+        'AC Qty': person.totalQty,
+        'Collection Achieve Qty (> 0)': person.collectedQty,
+        'Not Collected Qty': person.notCollectedQty,
+        'Coll %': person.percentage + '%',
+        'Collection Target Amount': parseFloat(person.targetAmount.toFixed(2)),
+        'Collection Achieve Amount': parseFloat(person.achieveAmount.toFixed(2)),
+        'Coll Amount %': person.amountPercentage + '%',
+      })
+    })
+
+    // Calculate and add plaza subtotal
+    const plazaSubtotal = persons.reduce(
+      (acc, person) => ({
+        totalQty: acc.totalQty + person.totalQty,
+        collectedQty: acc.collectedQty + person.collectedQty,
+        notCollectedQty: acc.notCollectedQty + person.notCollectedQty,
+        targetAmount: acc.targetAmount + person.targetAmount,
+        achieveAmount: acc.achieveAmount + person.achieveAmount,
+      }),
+      { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0 }
+    )
+    
+    const plazaPercentage = plazaSubtotal.totalQty > 0
+      ? ((plazaSubtotal.collectedQty / plazaSubtotal.totalQty) * 100).toFixed(2)
+      : '0.00'
+
+    const plazaAmountPercentage = plazaSubtotal.targetAmount > 0
+      ? ((plazaSubtotal.achieveAmount / plazaSubtotal.targetAmount) * 100).toFixed(2)
+      : '0.00'
+
+    wsData.push({
+      'Plaza Name': `${plaza} Subtotal`,
+      'Assign Person ID': '',
+      'AC Qty': plazaSubtotal.totalQty,
+      'Collection Achieve Qty (> 0)': plazaSubtotal.collectedQty,
+      'Not Collected Qty': plazaSubtotal.notCollectedQty,
+      'Coll %': plazaPercentage + '%',
+      'Collection Target Amount': parseFloat(plazaSubtotal.targetAmount.toFixed(2)),
+      'Collection Achieve Amount': parseFloat(plazaSubtotal.achieveAmount.toFixed(2)),
+      'Coll Amount %': plazaAmountPercentage + '%',
+    })
+  })
+
+  // Calculate grand totals
+  const grandTotals = sortedPersons.reduce(
+    (acc, person) => ({
+      totalQty: acc.totalQty + person.totalQty,
+      collectedQty: acc.collectedQty + person.collectedQty,
+      notCollectedQty: acc.notCollectedQty + person.notCollectedQty,
+      targetAmount: acc.targetAmount + person.targetAmount,
+      achieveAmount: acc.achieveAmount + person.achieveAmount,
+    }),
+    { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0 }
+  )
+
+  const grandTotalPercentage = grandTotals.totalQty > 0 
+    ? ((grandTotals.collectedQty / grandTotals.totalQty) * 100).toFixed(2) 
+    : '0.00'
+
+  const grandTotalAmountPercentage = grandTotals.targetAmount > 0
+    ? ((grandTotals.achieveAmount / grandTotals.targetAmount) * 100).toFixed(2)
+    : '0.00'
+
+  // Add grand totals row
+  wsData.push({
+    'Plaza Name': 'Grand Total',
+    'Assign Person ID': '',
+    'AC Qty': grandTotals.totalQty,
+    'Collection Achieve Qty (> 0)': grandTotals.collectedQty,
+    'Not Collected Qty': grandTotals.notCollectedQty,
+    'Coll %': grandTotalPercentage + '%',
+    'Collection Target Amount': parseFloat(grandTotals.targetAmount.toFixed(2)),
+    'Collection Achieve Amount': parseFloat(grandTotals.achieveAmount.toFixed(2)),
+    'Coll Amount %': grandTotalAmountPercentage + '%',
+  })
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 25 }, // Plaza Name
+    { wch: 20 }, // Assign Person ID
+    { wch: 12 }, // AC Qty
+    { wch: 25 }, // Collection Achieve Qty
+    { wch: 18 }, // Not Collected Qty
+    { wch: 12 }, // Coll %
+    { wch: 22 }, // Collection Target Amount
+    { wch: 22 }, // Collection Achieve Amount
+    { wch: 15 }, // Coll Amount %
   ]
 
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
