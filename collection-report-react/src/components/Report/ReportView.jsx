@@ -19,6 +19,9 @@ import { getTableData } from '../../services/reportService'
 function ReportView({ data, tabs, accountListTabs, personIdTabs, activeTab, onTabChange, onReset }) {
   const containerRef = useRef(null)
   const tableData = getTableData(data, activeTab)
+  
+  // Check if current tab is Person ID Top Sheet
+  const isPersonIdReport = activeTab === 'personidtopsheet'
 
   const renderTable = () => {
     if (!tableData.data) {
@@ -77,7 +80,12 @@ function ReportView({ data, tabs, accountListTabs, personIdTabs, activeTab, onTa
           <div className="month-header">{tableData.title}</div>
         )}
         {renderTable()}
-        <ActionButtons data={data} onReset={onReset} containerRef={containerRef} />
+        <ActionButtons 
+          data={data} 
+          onReset={onReset} 
+          containerRef={containerRef}
+          isPersonIdReport={isPersonIdReport}
+        />
       </div>
     </Container>
   )

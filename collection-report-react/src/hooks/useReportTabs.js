@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 const STATIC_TABS = [
   { id: 'current', label: 'Top Sheet' },
   { id: 'month2025', label: '2025 Month Wise' },
+  { id: 'notcoll2026', label: '2026 Not Collected' },
   { id: 'notcoll2025', label: '2025 Not Collected' },
   { id: 'notcoll2024', label: '2024 Not Collected' },
 ]

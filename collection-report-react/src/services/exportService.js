@@ -28,6 +28,244 @@ export async function exportAsImage(containerRef) {
   }
 }
 
+export async function exportPersonIdReportAsImage(containerRef) {
+  if (!containerRef.current) return
+
+  const btnContainer = containerRef.current.querySelector('.btn-container')
+  const tabs = containerRef.current.querySelectorAll('.report-tabs, .account-list-section')
+  const header = containerRef.current.querySelector('.header')
+  const monthHeader = containerRef.current.querySelector('.month-header')
+  const devCredits = containerRef.current.querySelectorAll('.developer-credit-top, .developer-credit-bottom')
+  const dateTime = containerRef.current.querySelector('.date-time')
+  const originalContainer = containerRef.current
+  
+  // Hide unnecessary elements (but keep developer credits visible)
+  if (btnContainer) btnContainer.style.display = 'none'
+  tabs.forEach(tab => tab.style.display = 'none')
+  if (dateTime) dateTime.style.display = 'none' // Hide timestamp
+  
+  // Store original header styles
+  let originalHeaderStyles = {}
+  if (header) {
+    originalHeaderStyles = {
+      fontSize: header.style.fontSize,
+      padding: header.style.padding,
+      marginBottom: header.style.marginBottom,
+    }
+    // Make header VERY small to maximize table visibility
+    header.style.fontSize = '9px'
+    header.style.padding = '3px 6px'
+    header.style.marginBottom = '2px'
+  }
+
+  // Store original styles
+  const originalStyles = {
+    fontSize: originalContainer.style.fontSize,
+    padding: originalContainer.style.padding,
+    width: originalContainer.style.width,
+    maxWidth: originalContainer.style.maxWidth,
+  }
+
+  try {
+    // Apply optimized styles for better readability
+    originalContainer.style.fontSize = '10px'
+    originalContainer.style.padding = '10px'
+    originalContainer.style.width = '1400px' // Wider to show all columns without cut-off
+    originalContainer.style.maxWidth = '1400px'
+    
+    // Make table more compact
+    const tables = originalContainer.querySelectorAll('.report-table')
+    const headers = originalContainer.querySelectorAll('.report-table th')
+    const cells = originalContainer.querySelectorAll('.report-table td')
+    const plazaCells = originalContainer.querySelectorAll('.report-table td:first-child')
+    
+    const originalTableStyles = []
+    tables.forEach(table => {
+      originalTableStyles.push({
+        fontSize: table.style.fontSize,
+        marginBottom: table.style.marginBottom,
+      })
+      table.style.fontSize = '10px'
+      table.style.marginBottom = '0'
+    })
+    
+    const originalHeaderStyles = []
+    headers.forEach(header => {
+      originalHeaderStyles.push({
+        fontSize: header.style.fontSize,
+        padding: header.style.padding,
+        whiteSpace: header.style.whiteSpace,
+      })
+      header.style.fontSize = '12px' // Slightly larger for better readability
+      header.style.padding = '7px 5px'
+      header.style.lineHeight = '1.2'
+      header.style.whiteSpace = 'nowrap'
+    })
+    
+    const originalCellStyles = []
+    cells.forEach(cell => {
+      originalCellStyles.push({
+        fontSize: cell.style.fontSize,
+        padding: cell.style.padding,
+      })
+      cell.style.fontSize = '11px' // Slightly larger for better readability
+      cell.style.padding = '6px 5px'
+      cell.style.lineHeight = '1.2'
+    })
+    
+    // Make plaza names more compact
+    const originalPlazaStyles = []
+    plazaCells.forEach(cell => {
+      originalPlazaStyles.push({
+        fontSize: cell.style.fontSize,
+        maxWidth: cell.style.maxWidth,
+        overflow: cell.style.overflow,
+        textOverflow: cell.style.textOverflow,
+        whiteSpace: cell.style.whiteSpace,
+      })
+      cell.style.fontSize = '10px' // Slightly larger for better readability
+      cell.style.maxWidth = '150px'
+      cell.style.overflow = 'hidden'
+      cell.style.textOverflow = 'ellipsis'
+      cell.style.whiteSpace = 'nowrap'
+    })
+    
+    // Style subtotal rows with darker background and white text
+    const subtotalRows = originalContainer.querySelectorAll('.subtotal-row')
+    const originalSubtotalStyles = []
+    subtotalRows.forEach(row => {
+      const cells = row.querySelectorAll('td')
+      const cellStyles = []
+      cells.forEach(cell => {
+        cellStyles.push({
+          backgroundColor: cell.style.backgroundColor,
+          color: cell.style.color,
+          fontWeight: cell.style.fontWeight,
+        })
+        cell.style.backgroundColor = '#1e40af' // Dark blue
+        cell.style.color = '#ffffff' // White text
+        cell.style.fontWeight = '800'
+      })
+      originalSubtotalStyles.push(cellStyles)
+    })
+    
+    // Style developer credits for image
+    const originalDevCreditStyles = []
+    devCredits.forEach(credit => {
+      if (credit) {
+        originalDevCreditStyles.push({
+          fontSize: credit.style.fontSize,
+          padding: credit.style.padding,
+          marginTop: credit.style.marginTop,
+        })
+        credit.style.fontSize = '10px'
+        credit.style.padding = '4px 0'
+        credit.style.marginTop = '8px'
+      }
+    })
+    
+    let originalTitleStyles = {}
+    if (monthHeader) {
+      originalTitleStyles = {
+        fontSize: monthHeader.style.fontSize,
+        marginBottom: monthHeader.style.marginBottom,
+        padding: monthHeader.style.padding,
+        display: monthHeader.style.display,
+      }
+      monthHeader.style.fontSize = '16px'
+      monthHeader.style.marginBottom = '10px'
+      monthHeader.style.padding = '8px'
+    }
+
+    const canvas = await html2canvas(originalContainer, {
+      backgroundColor: '#ffffff',
+      scale: 2, // Balanced quality and file size
+      useCORS: true,
+      logging: false,
+      width: 1400, // Wider to capture all columns without cut-off
+      scrollY: -window.scrollY,
+      scrollX: -window.scrollX,
+      windowWidth: 1400,
+    })
+
+    // Restore original styles
+    originalContainer.style.fontSize = originalStyles.fontSize
+    originalContainer.style.padding = originalStyles.padding
+    originalContainer.style.width = originalStyles.width
+    originalContainer.style.maxWidth = originalStyles.maxWidth
+    
+    if (header) {
+      header.style.fontSize = originalHeaderStyles.fontSize
+      header.style.padding = originalHeaderStyles.padding
+      header.style.marginBottom = originalHeaderStyles.marginBottom
+    }
+    
+    if (dateTime) dateTime.style.display = ''
+    
+    tables.forEach((table, i) => {
+      table.style.fontSize = originalTableStyles[i].fontSize
+      table.style.marginBottom = originalTableStyles[i].marginBottom
+    })
+    
+    headers.forEach((header, i) => {
+      header.style.fontSize = originalHeaderStyles[i].fontSize
+      header.style.padding = originalHeaderStyles[i].padding
+      header.style.lineHeight = ''
+      header.style.whiteSpace = originalHeaderStyles[i].whiteSpace
+    })
+    
+    cells.forEach((cell, i) => {
+      cell.style.fontSize = originalCellStyles[i].fontSize
+      cell.style.padding = originalCellStyles[i].padding
+      cell.style.lineHeight = ''
+    })
+    
+    plazaCells.forEach((cell, i) => {
+      cell.style.fontSize = originalPlazaStyles[i].fontSize
+      cell.style.maxWidth = originalPlazaStyles[i].maxWidth
+      cell.style.overflow = originalPlazaStyles[i].overflow
+      cell.style.textOverflow = originalPlazaStyles[i].textOverflow
+      cell.style.whiteSpace = originalPlazaStyles[i].whiteSpace
+    })
+    
+    // Restore subtotal row styles
+    subtotalRows.forEach((row, i) => {
+      const cells = row.querySelectorAll('td')
+      cells.forEach((cell, j) => {
+        if (originalSubtotalStyles[i] && originalSubtotalStyles[i][j]) {
+          cell.style.backgroundColor = originalSubtotalStyles[i][j].backgroundColor
+          cell.style.color = originalSubtotalStyles[i][j].color
+          cell.style.fontWeight = originalSubtotalStyles[i][j].fontWeight
+        }
+      })
+    })
+    
+    if (monthHeader) {
+      monthHeader.style.fontSize = originalTitleStyles.fontSize
+      monthHeader.style.marginBottom = originalTitleStyles.marginBottom
+      monthHeader.style.padding = originalTitleStyles.padding
+      monthHeader.style.display = originalTitleStyles.display
+    }
+    
+    // Restore developer credit styles
+    devCredits.forEach((credit, i) => {
+      if (credit && originalDevCreditStyles[i]) {
+        credit.style.fontSize = originalDevCreditStyles[i].fontSize
+        credit.style.padding = originalDevCreditStyles[i].padding
+        credit.style.marginTop = originalDevCreditStyles[i].marginTop
+      }
+    })
+
+    const link = document.createElement('a')
+    link.download = `Person_ID_Report_${new Date().toISOString().slice(0, 10)}.png`
+    link.href = canvas.toDataURL('image/png', 1.0)
+    link.click()
+  } finally {
+    if (btnContainer) btnContainer.style.display = 'flex'
+    tabs.forEach(tab => tab.style.display = '')
+  }
+}
+
 export function exportAsExcel(data) {
   const wb = XLSX.utils.book_new()
 
@@ -59,15 +297,30 @@ export function exportAsExcel(data) {
   // 2024 Not Collected
   add2024NotCollectedSheet(wb, data.yearlyData[2024])
 
+  // 2026 Not Collected
+  if (data.yearlyData[2026]) {
+    add2026NotCollectedSheet(wb, data.yearlyData[2026])
+  }
+
   // 2025 Account List
   addAccountListSheet(wb, data.yearlyData[2025], '2025 Account List')
 
   // 2024 Account List
   addAccountListSheet(wb, data.yearlyData[2024], '2024 Account List')
 
+  // 2026 Account List
+  if (data.yearlyData[2026]) {
+    addAccountListSheet(wb, data.yearlyData[2026], '2026 Account List')
+  }
+
   // 2025 Detailed Account List (for managers)
   if (data.accountDetails2025 && data.accountDetails2025.length > 0) {
     addDetailedAccountSheet(wb, data.accountDetails2025, '2025 Detailed Accounts')
+  }
+
+  // 2026 Detailed Account List (for managers)
+  if (data.accountDetails2026 && data.accountDetails2026.length > 0) {
+    addDetailedAccountSheet(wb, data.accountDetails2026, '2026 Detailed Accounts')
   }
 
   // 2024 Detailed Account List (for managers)
@@ -351,6 +604,41 @@ function add2024NotCollectedSheet(wb, yearlyData2024) {
 
   const ws = XLSX.utils.json_to_sheet(wsData)
   XLSX.utils.book_append_sheet(wb, ws, '2024 Not Collected')
+}
+
+function add2026NotCollectedSheet(wb, yearlyData2026) {
+  if (!yearlyData2026 || Object.keys(yearlyData2026).length === 0) {
+    return
+  }
+
+  const wsData = Object.entries(yearlyData2026).map(([plaza, values]) => ({
+    'Plaza Name': plaza,
+    'AC Qty': values.plazaQty,
+    'Collection Achieve Qty (> 0)': values.collectionQty,
+    'Not Collected Qty': values.plazaQty - values.collectionQty,
+  }))
+
+  // Calculate totals
+  let totalQty = 0
+  let totalCollection = 0
+
+  Object.values(yearlyData2026).forEach(values => {
+    totalQty += values.plazaQty
+    totalCollection += values.collectionQty
+  })
+
+  const totalNotCollected = totalQty - totalCollection
+
+  // Add totals row
+  wsData.push({
+    'Plaza Name': 'Total',
+    'AC Qty': totalQty,
+    'Collection Achieve Qty (> 0)': totalCollection,
+    'Not Collected Qty': totalNotCollected,
+  })
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+  XLSX.utils.book_append_sheet(wb, ws, '2026 Not Collected')
 }
 
 function add2024MonthWiseNotCollectedSheet(wb, monthlyData2024) {

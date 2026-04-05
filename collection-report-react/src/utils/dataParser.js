@@ -22,11 +22,12 @@ export function parseExcelData(rows) {
 
   const result = {}
   const monthlyData = {}
-  const yearlyData = { 2024: {}, 2025: {} }
+  const yearlyData = { 2024: {}, 2025: {}, 2026: {} }
   const monthlyData2025 = {}
   const monthlyData2024 = {}
   const accountDetails2025 = [] // Account-level details for 2025
   const accountDetails2024 = [] // Account-level details for 2024
+  const accountDetails2026 = [] // Account-level details for 2026
   const allAccountDetails = [] // All account details for Total No Collection Account List
   const dailyCollectionComparison2025 = [] // All 2025 accounts for daily collection comparison
   const dailyCollectionComparison2024 = [] // All 2024 accounts for daily collection comparison
@@ -92,7 +93,7 @@ export function parseExcelData(rows) {
 
       // Yearly report
       const year = getYear(invoiceDate)
-      if (year && (year === 2024 || year === 2025)) {
+      if (year && (year === 2024 || year === 2025 || year === 2026)) {
         if (!yearlyData[year][plaza]) {
           yearlyData[year][plaza] = { plazaQty: 0, collectionQty: 0 }
         }
@@ -107,6 +108,8 @@ export function parseExcelData(rows) {
             accountDetails2025.push(accountDetail)
           } else if (year === 2024) {
             accountDetails2024.push(accountDetail)
+          } else if (year === 2026) {
+            accountDetails2026.push(accountDetail)
           }
         }
 
@@ -150,7 +153,7 @@ export function parseExcelData(rows) {
     }
   }
 
-  return { result, monthlyData, yearlyData, monthlyData2025, monthlyData2024, accountDetails2025, accountDetails2024, allAccountDetails, dailyCollectionComparison2025, dailyCollectionComparison2024 }
+  return { result, monthlyData, yearlyData, monthlyData2025, monthlyData2024, accountDetails2025, accountDetails2024, accountDetails2026, allAccountDetails, dailyCollectionComparison2025, dailyCollectionComparison2024 }
 }
 
 function getMonthName(dateValue) {

@@ -114,12 +114,12 @@ function PersonIdTopSheetTable({ data, title }) {
             <th>Plaza Name</th>
             <th>Assign Person ID</th>
             <th>AC Qty</th>
-            <th>Collection Achieve Qty (&gt; 0)</th>
-            <th>Not Collected Qty</th>
+            <th>Coll Achieve Qty</th>
+            <th>Not Coll Qty</th>
             <th>Coll %</th>
-            <th>Collection Target Amount</th>
-            <th>Collection Achieve Amount</th>
-            <th>Coll Amount %</th>
+            <th>Target Amount</th>
+            <th>Achieve Amount</th>
+            <th>Amount %</th>
           </tr>
         </thead>
         <tbody>

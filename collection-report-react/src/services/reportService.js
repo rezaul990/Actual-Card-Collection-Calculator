@@ -29,11 +29,21 @@ export function getTableData(data, activeTab) {
     case 'year2025':
       return { data: data.yearlyData[2025], title: '2025 Account Report' }
 
+    case 'year2026':
+      return { data: data.yearlyData[2026], title: '2026 Account Report' }
+
     case 'month2025':
       return {
         data: data.monthlyData2025,
         title: '2025 Month Wise Report',
         isMonthly: true,
+      }
+
+    case 'notcoll2026':
+      return {
+        data: data.yearlyData[2026],
+        title: '2026 Not Collected Qty',
+        isNotCollected2024: true,
       }
 
     case 'notcoll2025':
