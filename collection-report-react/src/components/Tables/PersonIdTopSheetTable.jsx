@@ -1,20 +1,22 @@
 import './Table.css'
 import React from 'react'
 
-function PersonIdTopSheetTable({ data, title }) {
+function PersonIdTopSheetTable({ data, title, overdueData }) {
   if (!data || !data.accountDetails) {
     return <div className="no-data">No data available</div>
   }
 
   const accountDetails = data.accountDetails
+  // overdueData is a Map: invoiceNo (string) -> overdueAmount (number)
+  const hasOverdue = overdueData && overdueData.size > 0
 
   // Group by Plaza and Assign Person ID
   const personGroups = {}
   accountDetails.forEach(account => {
     const plaza = account.plaza || 'Unknown'
     const personId = account.assignPersonId || 'Unknown'
-    const key = `${plaza}|||${personId}` // Use delimiter to separate plaza and personId
-    
+    const key = `${plaza}|||${personId}`
+
     if (!personGroups[key]) {
       personGroups[key] = {
         plaza,
@@ -23,35 +25,38 @@ function PersonIdTopSheetTable({ data, title }) {
         collectedQty: 0,
         targetAmount: 0,
         achieveAmount: 0,
+        overdueAmount: 0,
       }
     }
-    
+
     personGroups[key].totalQty++
-    
-    // Clean and parse Collection Target (remove spaces and commas)
+
+    // Clean and parse Collection Target
     let target = 0
     if (account.collectionTarget != null && account.collectionTarget !== '') {
       const cleanedTarget = String(account.collectionTarget).replace(/[,\s]/g, '').trim()
       target = parseFloat(cleanedTarget) || 0
     }
-    
-    // Clean and parse Collection Achieve (remove spaces and commas)
+
+    // Clean and parse Collection Achieve
     let achieve = 0
     if (account.collectionAchieve != null && account.collectionAchieve !== '') {
       const cleanedAchieve = String(account.collectionAchieve).replace(/[,\s]/g, '').trim()
       achieve = parseFloat(cleanedAchieve) || 0
     }
-    
-    // Debug logging for person ID 291
-    if (personId === '291') {
-      console.log('Person 291 - Target:', account.collectionTarget, 'Parsed:', target, 'Achieve:', account.collectionAchieve, 'Parsed:', achieve)
-    }
-    
+
     personGroups[key].targetAmount += target
     personGroups[key].achieveAmount += achieve
-    
+
     if (achieve > 0) {
       personGroups[key].collectedQty++
+    }
+
+    // Match overdue by invoice number
+    if (hasOverdue && account.invoiceNo) {
+      const invoiceKey = String(account.invoiceNo).trim()
+      const overdue = overdueData.get(invoiceKey) || 0
+      personGroups[key].overdueAmount += overdue
     }
   })
 
@@ -66,23 +71,20 @@ function PersonIdTopSheetTable({ data, title }) {
       percentage: ((values.collectedQty / values.totalQty) * 100).toFixed(2),
       targetAmount: values.targetAmount,
       achieveAmount: values.achieveAmount,
-      amountPercentage: values.targetAmount > 0 
+      overdueAmount: values.overdueAmount,
+      amountPercentage: values.targetAmount > 0
         ? ((values.achieveAmount / values.targetAmount) * 100).toFixed(2)
         : '0.00',
     }))
     .sort((a, b) => {
-      if (a.plaza !== b.plaza) {
-        return a.plaza.localeCompare(b.plaza)
-      }
+      if (a.plaza !== b.plaza) return a.plaza.localeCompare(b.plaza)
       return a.personId.localeCompare(b.personId)
     })
 
   // Group by plaza for subtotals
   const plazaGroups = {}
   sortedPersons.forEach(person => {
-    if (!plazaGroups[person.plaza]) {
-      plazaGroups[person.plaza] = []
-    }
+    if (!plazaGroups[person.plaza]) plazaGroups[person.plaza] = []
     plazaGroups[person.plaza].push(person)
   })
 
@@ -94,12 +96,13 @@ function PersonIdTopSheetTable({ data, title }) {
       notCollectedQty: acc.notCollectedQty + person.notCollectedQty,
       targetAmount: acc.targetAmount + person.targetAmount,
       achieveAmount: acc.achieveAmount + person.achieveAmount,
+      overdueAmount: acc.overdueAmount + person.overdueAmount,
     }),
-    { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0 }
+    { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0, overdueAmount: 0 }
   )
 
-  const grandTotalPercentage = grandTotals.totalQty > 0 
-    ? ((grandTotals.collectedQty / grandTotals.totalQty) * 100).toFixed(2) 
+  const grandTotalPercentage = grandTotals.totalQty > 0
+    ? ((grandTotals.collectedQty / grandTotals.totalQty) * 100).toFixed(2)
     : '0.00'
 
   const grandTotalAmountPercentage = grandTotals.targetAmount > 0
@@ -120,6 +123,7 @@ function PersonIdTopSheetTable({ data, title }) {
             <th>Target Amount</th>
             <th>Achieve Amount</th>
             <th>Amount %</th>
+            {hasOverdue && <th>Overdue Amount</th>}
           </tr>
         </thead>
         <tbody>
@@ -132,10 +136,11 @@ function PersonIdTopSheetTable({ data, title }) {
                 notCollectedQty: acc.notCollectedQty + person.notCollectedQty,
                 targetAmount: acc.targetAmount + person.targetAmount,
                 achieveAmount: acc.achieveAmount + person.achieveAmount,
+                overdueAmount: acc.overdueAmount + person.overdueAmount,
               }),
-              { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0 }
+              { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0, overdueAmount: 0 }
             )
-            
+
             const plazaPercentage = plazaSubtotal.totalQty > 0
               ? ((plazaSubtotal.collectedQty / plazaSubtotal.totalQty) * 100).toFixed(2)
               : '0.00'
@@ -157,6 +162,9 @@ function PersonIdTopSheetTable({ data, title }) {
                     <td style={{ textAlign: 'right' }}>{person.targetAmount.toFixed(2)}</td>
                     <td style={{ textAlign: 'right' }}>{person.achieveAmount.toFixed(2)}</td>
                     <td style={{ textAlign: 'center' }}>{person.amountPercentage}%</td>
+                    {hasOverdue && (
+                      <td style={{ textAlign: 'right' }}>{person.overdueAmount.toFixed(2)}</td>
+                    )}
                   </tr>
                 ))}
                 <tr className="subtotal-row" style={{ backgroundColor: '#f0f9ff', fontWeight: '700' }}>
@@ -169,6 +177,9 @@ function PersonIdTopSheetTable({ data, title }) {
                   <td style={{ textAlign: 'right' }}>{plazaSubtotal.targetAmount.toFixed(2)}</td>
                   <td style={{ textAlign: 'right' }}>{plazaSubtotal.achieveAmount.toFixed(2)}</td>
                   <td style={{ textAlign: 'center' }}>{plazaAmountPercentage}%</td>
+                  {hasOverdue && (
+                    <td style={{ textAlign: 'right' }}>{plazaSubtotal.overdueAmount.toFixed(2)}</td>
+                  )}
                 </tr>
               </React.Fragment>
             )
@@ -182,6 +193,9 @@ function PersonIdTopSheetTable({ data, title }) {
             <td style={{ textAlign: 'right' }}>{grandTotals.targetAmount.toFixed(2)}</td>
             <td style={{ textAlign: 'right' }}>{grandTotals.achieveAmount.toFixed(2)}</td>
             <td style={{ textAlign: 'center' }}>{grandTotalAmountPercentage}%</td>
+            {hasOverdue && (
+              <td style={{ textAlign: 'right' }}>{grandTotals.overdueAmount.toFixed(2)}</td>
+            )}
           </tr>
         </tbody>
       </table>

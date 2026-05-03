@@ -5,7 +5,19 @@ import ReportView from './components/Report/ReportView'
 import './App.css'
 
 function App() {
-  const { reportData, showReport, error, handleFileUpload, handleReset } = useReportData()
+  const {
+    reportData,
+    overdueData,
+    showReport,
+    uploadStep,
+    error,
+    overdueError,
+    mainFileName,
+    handleFileUpload,
+    handleOverdueFileUpload,
+    handleSkipOverdue,
+    handleReset,
+  } = useReportData()
   const { tabs, accountListTabs, personIdTabs, activeTab, setActiveTab } = useReportTabs(reportData?.monthlyData || {})
 
   return (
@@ -15,10 +27,19 @@ function App() {
       </div>
 
       {!showReport ? (
-        <UploadView onFileUpload={handleFileUpload} error={error} />
+        <UploadView
+          uploadStep={uploadStep}
+          onFileUpload={handleFileUpload}
+          onOverdueFileUpload={handleOverdueFileUpload}
+          onSkipOverdue={handleSkipOverdue}
+          error={error}
+          overdueError={overdueError}
+          mainFileName={mainFileName}
+        />
       ) : (
         <ReportView
           data={reportData}
+          overdueData={overdueData}
           tabs={tabs}
           accountListTabs={accountListTabs}
           personIdTabs={personIdTabs}

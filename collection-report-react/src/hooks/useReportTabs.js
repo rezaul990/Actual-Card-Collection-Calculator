@@ -54,6 +54,7 @@ export function useReportTabs(monthlyData = {}) {
   const personIdTabs = useMemo(() => {
     return [
       { id: 'personidtopsheet', label: 'Top Sheet' },
+      { id: 'allaccount', label: 'All Account' },
     ]
   }, [])
 

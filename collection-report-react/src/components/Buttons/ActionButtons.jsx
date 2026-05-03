@@ -1,7 +1,7 @@
 import { exportAsImage, exportAsExcel, exportPersonIdReportAsImage } from '../../services/exportService'
 import './ActionButtons.css'
 
-function ActionButtons({ data, onReset, containerRef, isPersonIdReport }) {
+function ActionButtons({ data, overdueData, onReset, containerRef, isPersonIdReport }) {
   const handleSaveImage = async () => {
     if (isPersonIdReport) {
       await exportPersonIdReportAsImage(containerRef)
@@ -11,7 +11,7 @@ function ActionButtons({ data, onReset, containerRef, isPersonIdReport }) {
   }
 
   const handleDownloadExcel = () => {
-    exportAsExcel(data)
+    exportAsExcel(data, overdueData)
   }
 
   return (

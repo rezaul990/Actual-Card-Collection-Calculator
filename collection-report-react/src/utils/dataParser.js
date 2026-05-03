@@ -1,3 +1,49 @@
+/**
+ * Parse the OverdueAccountsDetails XLS file.
+ * Returns a Map: invoiceNo (string) -> overdueAmount (number)
+ * - Header rows 1-6 (data starts row 7, index 6)
+ * - Column H (index 7): Sale Invoice (Invoice No.) - matching key
+ * - Column AD (index 29): Overdue amount
+ * - Skips page-break rows containing "Designed and developed" or "S/l No." or "S/L No."
+ */
+export function parseOverdueData(rows) {
+  const overdueMap = new Map()
+
+  for (let i = 6; i < rows.length; i++) {
+    const row = rows[i]
+    if (!row) continue
+
+    // Skip page-break / header repeat rows
+    const rowText = row.join(' ').toLowerCase()
+    if (
+      rowText.includes('designed and developed') ||
+      rowText.includes('s/l no') ||
+      rowText.includes('sl no') ||
+      rowText.includes('sale invoice') ||
+      rowText.includes('overdue')
+    ) continue
+
+    const invoiceNo = row[7]   // Column H - Sale Invoice
+    const overdueRaw = row[29] // Column AD - Overdue Amount
+
+    if (!invoiceNo || invoiceNo === '' || invoiceNo === null) continue
+
+    const invoiceKey = String(invoiceNo).trim()
+    if (!invoiceKey) continue
+
+    let overdue = 0
+    if (overdueRaw != null && overdueRaw !== '') {
+      const cleaned = String(overdueRaw).replace(/[,\s]/g, '').trim()
+      overdue = parseFloat(cleaned) || 0
+    }
+
+    // Accumulate in case same invoice appears multiple times
+    overdueMap.set(invoiceKey, (overdueMap.get(invoiceKey) || 0) + overdue)
+  }
+
+  return overdueMap
+}
+
 export function parseExcelData(rows) {
   const HEADER_ROW_INDEX = 5
   const collectionCol = 20 // Column U (0-based index)

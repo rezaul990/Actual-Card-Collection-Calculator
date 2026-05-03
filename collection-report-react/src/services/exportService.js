@@ -266,7 +266,7 @@ export async function exportPersonIdReportAsImage(containerRef) {
   }
 }
 
-export function exportAsExcel(data) {
+export function exportAsExcel(data, overdueData) {
   const wb = XLSX.utils.book_new()
 
   // Current Report
@@ -380,7 +380,12 @@ export function exportAsExcel(data) {
 
   // Assign Person ID Top Sheet
   if (data.allAccountDetails && data.allAccountDetails.length > 0) {
-    addPersonIdTopSheet(wb, data.allAccountDetails, 'Person ID Top Sheet')
+    addPersonIdTopSheet(wb, data.allAccountDetails, 'Person ID Top Sheet', overdueData)
+  }
+
+  // All Account List
+  if (data.allAccountDetails && data.allAccountDetails.length > 0) {
+    addAllAccountSheet(wb, data.allAccountDetails, 'All Account', overdueData)
   }
 
   XLSX.writeFile(wb, `Collection_Report_${new Date().toISOString().slice(0, 10)}.xlsx`)
@@ -1518,10 +1523,12 @@ function addYearNoCollectionSheet(wb, accountDetails, year, sheetName) {
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
 }
 
-function addPersonIdTopSheet(wb, accountDetails, sheetName) {
+function addPersonIdTopSheet(wb, accountDetails, sheetName, overdueData) {
   if (!accountDetails || accountDetails.length === 0) {
     return
   }
+
+  const hasOverdue = overdueData && overdueData.size > 0
 
   // Group by Plaza and Assign Person ID
   const personGroups = {}
@@ -1538,6 +1545,7 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
         collectedQty: 0,
         targetAmount: 0,
         achieveAmount: 0,
+        overdueAmount: 0,
       }
     }
     
@@ -1563,6 +1571,13 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
     if (achieve > 0) {
       personGroups[key].collectedQty++
     }
+
+    // Match overdue by invoice number
+    if (hasOverdue && account.invoiceNo) {
+      const invoiceKey = String(account.invoiceNo).trim()
+      const overdue = overdueData.get(invoiceKey) || 0
+      personGroups[key].overdueAmount += overdue
+    }
   })
 
   // Convert to array and sort by plaza, then by person ID
@@ -1576,7 +1591,8 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
       percentage: ((values.collectedQty / values.totalQty) * 100).toFixed(2),
       targetAmount: values.targetAmount,
       achieveAmount: values.achieveAmount,
-      amountPercentage: values.targetAmount > 0 
+      overdueAmount: values.overdueAmount,
+      amountPercentage: values.targetAmount > 0
         ? ((values.achieveAmount / values.targetAmount) * 100).toFixed(2)
         : '0.00',
     }))
@@ -1601,7 +1617,7 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
   Object.entries(plazaGroups).forEach(([plaza, persons]) => {
     // Add person rows
     persons.forEach(person => {
-      wsData.push({
+      const row = {
         'Plaza Name': person.plaza,
         'Assign Person ID': person.personId,
         'AC Qty': person.totalQty,
@@ -1611,7 +1627,9 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
         'Collection Target Amount': parseFloat(person.targetAmount.toFixed(2)),
         'Collection Achieve Amount': parseFloat(person.achieveAmount.toFixed(2)),
         'Coll Amount %': person.amountPercentage + '%',
-      })
+      }
+      if (hasOverdue) row['Overdue Amount'] = parseFloat(person.overdueAmount.toFixed(2))
+      wsData.push(row)
     })
 
     // Calculate and add plaza subtotal
@@ -1622,10 +1640,11 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
         notCollectedQty: acc.notCollectedQty + person.notCollectedQty,
         targetAmount: acc.targetAmount + person.targetAmount,
         achieveAmount: acc.achieveAmount + person.achieveAmount,
+        overdueAmount: acc.overdueAmount + person.overdueAmount,
       }),
-      { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0 }
+      { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0, overdueAmount: 0 }
     )
-    
+
     const plazaPercentage = plazaSubtotal.totalQty > 0
       ? ((plazaSubtotal.collectedQty / plazaSubtotal.totalQty) * 100).toFixed(2)
       : '0.00'
@@ -1634,7 +1653,7 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
       ? ((plazaSubtotal.achieveAmount / plazaSubtotal.targetAmount) * 100).toFixed(2)
       : '0.00'
 
-    wsData.push({
+    const subtotalRow = {
       'Plaza Name': `${plaza} Subtotal`,
       'Assign Person ID': '',
       'AC Qty': plazaSubtotal.totalQty,
@@ -1644,7 +1663,9 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
       'Collection Target Amount': parseFloat(plazaSubtotal.targetAmount.toFixed(2)),
       'Collection Achieve Amount': parseFloat(plazaSubtotal.achieveAmount.toFixed(2)),
       'Coll Amount %': plazaAmountPercentage + '%',
-    })
+    }
+    if (hasOverdue) subtotalRow['Overdue Amount'] = parseFloat(plazaSubtotal.overdueAmount.toFixed(2))
+    wsData.push(subtotalRow)
   })
 
   // Calculate grand totals
@@ -1655,12 +1676,13 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
       notCollectedQty: acc.notCollectedQty + person.notCollectedQty,
       targetAmount: acc.targetAmount + person.targetAmount,
       achieveAmount: acc.achieveAmount + person.achieveAmount,
+      overdueAmount: acc.overdueAmount + person.overdueAmount,
     }),
-    { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0 }
+    { totalQty: 0, collectedQty: 0, notCollectedQty: 0, targetAmount: 0, achieveAmount: 0, overdueAmount: 0 }
   )
 
-  const grandTotalPercentage = grandTotals.totalQty > 0 
-    ? ((grandTotals.collectedQty / grandTotals.totalQty) * 100).toFixed(2) 
+  const grandTotalPercentage = grandTotals.totalQty > 0
+    ? ((grandTotals.collectedQty / grandTotals.totalQty) * 100).toFixed(2)
     : '0.00'
 
   const grandTotalAmountPercentage = grandTotals.targetAmount > 0
@@ -1668,7 +1690,7 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
     : '0.00'
 
   // Add grand totals row
-  wsData.push({
+  const grandTotalRow = {
     'Plaza Name': 'Grand Total',
     'Assign Person ID': '',
     'AC Qty': grandTotals.totalQty,
@@ -1678,7 +1700,9 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
     'Collection Target Amount': parseFloat(grandTotals.targetAmount.toFixed(2)),
     'Collection Achieve Amount': parseFloat(grandTotals.achieveAmount.toFixed(2)),
     'Coll Amount %': grandTotalAmountPercentage + '%',
-  })
+  }
+  if (hasOverdue) grandTotalRow['Overdue Amount'] = parseFloat(grandTotals.overdueAmount.toFixed(2))
+  wsData.push(grandTotalRow)
 
   const ws = XLSX.utils.json_to_sheet(wsData)
 
@@ -1693,6 +1717,102 @@ function addPersonIdTopSheet(wb, accountDetails, sheetName) {
     { wch: 22 }, // Collection Target Amount
     { wch: 22 }, // Collection Achieve Amount
     { wch: 15 }, // Coll Amount %
+    ...(hasOverdue ? [{ wch: 18 }] : []), // Overdue Amount
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+}
+
+function addAllAccountSheet(wb, accountDetails, sheetName, overdueData) {
+  if (!accountDetails || accountDetails.length === 0) return
+
+  const hasOverdue = overdueData && overdueData.size > 0
+
+  const parseAmt = (val) => {
+    if (val == null || val === '') return 0
+    return parseFloat(String(val).replace(/[,\s]/g, '')) || 0
+  }
+
+  const formatDate = (val) => {
+    if (!val) return '-'
+    if (typeof val === 'number') {
+      const d = new Date((val - 25569) * 86400 * 1000)
+      return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-GB')
+    }
+    return String(val)
+  }
+
+  const wsData = accountDetails.map((acc, idx) => {
+    const row = {
+      'S/N': idx + 1,
+      'Division': acc.division || '-',
+      'Area': acc.area || '-',
+      'Plaza': acc.plaza || '-',
+      'Account No.': acc.accountNo || '-',
+      'Customer Name': acc.customerName || '-',
+      'Product Category': acc.productCategory || '-',
+      'Assign Person ID': acc.assignPersonId || '-',
+      'Invoice No.': acc.invoiceNo || '-',
+      'Invoice Date': formatDate(acc.invoiceDate),
+      'Matured Date': formatDate(acc.maturedDate),
+      'Per Month Schedule': parseFloat(parseAmt(acc.perMonthSchedule).toFixed(2)),
+      'Collection Target': parseFloat(parseAmt(acc.collectionTarget).toFixed(2)),
+      'Collection Achieve': parseFloat(parseAmt(acc.collectionAchieve).toFixed(2)),
+    }
+    if (hasOverdue) {
+      const invoiceKey = acc.invoiceNo ? String(acc.invoiceNo).trim() : ''
+      row['Overdue Amount'] = parseFloat((overdueData.get(invoiceKey) || 0).toFixed(2))
+    }
+    return row
+  })
+
+  // Totals row
+  let totalTarget = 0, totalAchieve = 0, totalOverdue = 0
+  accountDetails.forEach(acc => {
+    totalTarget += parseAmt(acc.collectionTarget)
+    totalAchieve += parseAmt(acc.collectionAchieve)
+    if (hasOverdue && acc.invoiceNo) {
+      totalOverdue += overdueData.get(String(acc.invoiceNo).trim()) || 0
+    }
+  })
+
+  const totalRow = {
+    'S/N': '',
+    'Division': '',
+    'Area': '',
+    'Plaza': '',
+    'Account No.': '',
+    'Customer Name': '',
+    'Product Category': '',
+    'Assign Person ID': '',
+    'Invoice No.': '',
+    'Invoice Date': '',
+    'Matured Date': `Total (${accountDetails.length} accounts)`,
+    'Per Month Schedule': '',
+    'Collection Target': parseFloat(totalTarget.toFixed(2)),
+    'Collection Achieve': parseFloat(totalAchieve.toFixed(2)),
+  }
+  if (hasOverdue) totalRow['Overdue Amount'] = parseFloat(totalOverdue.toFixed(2))
+  wsData.push(totalRow)
+
+  const ws = XLSX.utils.json_to_sheet(wsData)
+
+  ws['!cols'] = [
+    { wch: 6 },  // S/N
+    { wch: 14 }, // Division
+    { wch: 14 }, // Area
+    { wch: 24 }, // Plaza
+    { wch: 16 }, // Account No.
+    { wch: 22 }, // Customer Name
+    { wch: 18 }, // Product Category
+    { wch: 16 }, // Assign Person ID
+    { wch: 18 }, // Invoice No.
+    { wch: 12 }, // Invoice Date
+    { wch: 12 }, // Matured Date
+    { wch: 18 }, // Per Month Schedule
+    { wch: 18 }, // Collection Target
+    { wch: 18 }, // Collection Achieve
+    ...(hasOverdue ? [{ wch: 16 }] : []), // Overdue Amount
   ]
 
   XLSX.utils.book_append_sheet(wb, ws, sheetName)

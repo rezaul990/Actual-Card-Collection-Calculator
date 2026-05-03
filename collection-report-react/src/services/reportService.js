@@ -157,6 +157,13 @@ export function getTableData(data, activeTab) {
         isPersonIdTopSheet: true,
       }
 
+    case 'allaccount':
+      return {
+        data: { accountDetails: data.allAccountDetails || [] },
+        title: 'All Account List',
+        isAllAccount: true,
+      }
+
     default:
       return { data: data.result, title: 'Current Report' }
   }

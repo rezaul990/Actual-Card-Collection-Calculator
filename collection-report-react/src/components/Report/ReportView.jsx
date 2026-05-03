@@ -13,15 +13,16 @@ import NoCollectionAccountListTable from '../Tables/NoCollectionAccountListTable
 import Month4NoCollectionAccountListTable from '../Tables/Month4NoCollectionAccountListTable'
 import YearNoCollectionAccountListTable from '../Tables/YearNoCollectionAccountListTable'
 import PersonIdTopSheetTable from '../Tables/PersonIdTopSheetTable'
+import AllAccountTable from '../Tables/AllAccountTable'
 import ActionButtons from '../Buttons/ActionButtons'
 import { getTableData } from '../../services/reportService'
 
-function ReportView({ data, tabs, accountListTabs, personIdTabs, activeTab, onTabChange, onReset }) {
+function ReportView({ data, overdueData, tabs, accountListTabs, personIdTabs, activeTab, onTabChange, onReset }) {
   const containerRef = useRef(null)
   const tableData = getTableData(data, activeTab)
   
-  // Check if current tab is Person ID Top Sheet
-  const isPersonIdReport = activeTab === 'personidtopsheet'
+  // Check if current tab is Person ID Top Sheet or All Account
+  const isPersonIdReport = activeTab === 'personidtopsheet' || activeTab === 'allaccount'
 
   const renderTable = () => {
     if (!tableData.data) {
@@ -65,7 +66,11 @@ function ReportView({ data, tabs, accountListTabs, personIdTabs, activeTab, onTa
     }
 
     if (tableData.isPersonIdTopSheet) {
-      return <PersonIdTopSheetTable data={tableData.data} title={tableData.title} />
+      return <PersonIdTopSheetTable data={tableData.data} title={tableData.title} overdueData={overdueData} />
+    }
+
+    if (tableData.isAllAccount) {
+      return <AllAccountTable data={tableData.data} title={tableData.title} overdueData={overdueData} />
     }
 
     return <StandardTable data={tableData.data} title={tableData.title} />
@@ -75,17 +80,18 @@ function ReportView({ data, tabs, accountListTabs, personIdTabs, activeTab, onTa
     <Container>
       <div ref={containerRef}>
         <Header />
+        <ActionButtons 
+          data={data} 
+          overdueData={overdueData}
+          onReset={onReset} 
+          containerRef={containerRef}
+          isPersonIdReport={isPersonIdReport}
+        />
         <Tabs tabs={tabs} accountListTabs={accountListTabs} personIdTabs={personIdTabs} activeTab={activeTab} onTabChange={onTabChange} />
         {tableData.title && (
           <div className="month-header">{tableData.title}</div>
         )}
         {renderTable()}
-        <ActionButtons 
-          data={data} 
-          onReset={onReset} 
-          containerRef={containerRef}
-          isPersonIdReport={isPersonIdReport}
-        />
       </div>
     </Container>
   )
